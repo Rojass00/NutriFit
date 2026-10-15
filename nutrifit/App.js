@@ -28,20 +28,26 @@ function HomeScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
-        {/* Encabezado con fecha más visible */}
+        {/* Header estilo Finanzas: Título prominente primero */}
         <View style={styles.headerContainer}>
-          <Text style={styles.headerSubtitle}>Jueves, 15 de Octubre</Text>
           <Text style={styles.headerTitle}>Resumen</Text>
+          <Text style={styles.headerSubtitle}>Jueves, 15 de Octubre</Text>
         </View>
 
-        {/* Tarjeta Principal de Calorías */}
+        {/* Tarjeta Principal (Saldo de Calorías limpio sin tope raro) */}
         <View style={styles.mainCard}>
-          <Text style={styles.cardLabel}>🔥 Calorías consumidas</Text>
-          <View style={styles.calorieRow}>
-            <Text style={styles.mainValue}>{stats.caloriesConsumed}</Text>
-            <Text style={styles.goalValue}> / {stats.calorieGoal} kcal</Text>
+          <View style={styles.cardHeaderRow}>
+            <Ionicons name="flame" size={18} color="#FF9F0A" />
+            <Text style={styles.cardLabel}>Calorías consumidas</Text>
           </View>
+
+          {/* Número gigante sin distorsión de altura */}
+          <Text style={styles.mainValue}>{stats.caloriesConsumed}</Text>
           
+          <Text style={styles.goalSubtext}>
+            de {stats.calorieGoal} kcal
+          </Text>
+
           <View style={styles.progressBarBg}>
             <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
           </View>
@@ -90,7 +96,7 @@ function HomeScreen() {
           </View>
         </View>
 
-        {/* Espaciado de seguridad inferior generoso */}
+        {/* Espaciado de seguridad inferior */}
         <View style={{ height: 50 }} />
       </ScrollView>
     </SafeAreaView>
@@ -173,8 +179,8 @@ export default function App() {
               backgroundColor: '#0B0D12',
               borderTopColor: '#1C1E26',
               borderTopWidth: 1,
-              height: 84, // Altura optimizada para evitar conflicto con barra de gestos de Apple
-              paddingBottom: 24, // Espacio libre para la barra de Siri / Home Bar
+              height: 84,
+              paddingBottom: 24,
               paddingTop: 10,
             },
             tabBarActiveTintColor: '#FF9F0A',
@@ -220,25 +226,23 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 16, // Margen superior más cómodo debajo de la status bar
+    paddingTop: 12,
     paddingBottom: 20,
   },
   headerContainer: {
-    marginBottom: 20,
-  },
-  headerSubtitle: {
-    color: '#A1A1AA', // Tono más claro y legible para la fecha
-    fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 4,
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
+    marginBottom: 18,
   },
   headerTitle: {
     color: '#FFFFFF',
     fontSize: 34,
     fontWeight: '800',
     letterSpacing: -0.5,
+  },
+  headerSubtitle: {
+    color: '#636675',
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 2,
   },
   mainCard: {
     backgroundColor: '#16181F',
@@ -248,27 +252,30 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#222530',
   },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
   cardLabel: {
     color: '#8E8E93',
     fontSize: 14,
-    marginBottom: 10,
     fontWeight: '600',
-  },
-  calorieRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: 16,
   },
   mainValue: {
     color: '#FFFFFF',
-    fontSize: 42,
+    fontSize: 46,
     fontWeight: '800',
     letterSpacing: -1,
+    lineHeight: 52, // Evita recortes de fuente en iOS Web
   },
-  goalValue: {
+  goalSubtext: {
     color: '#8E8E93',
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '500',
+    marginTop: 4,
+    marginBottom: 16,
   },
   progressBarBg: {
     height: 8,
