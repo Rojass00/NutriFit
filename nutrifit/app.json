@@ -1,187 +1,35 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, Dimensions } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
-
-// ==========================================
-// 1. PANTALLAS (Screen Components)
-// ==========================================
-
-function HomeScreen() {
-  const [stats] = useState({
-    caloriesConsumed: 0,
-    calorieGoal: 2000,
-    proteinConsumed: 0,
-    proteinGoal: 120,
-    carbsConsumed: 0,
-    carbsGoal: 220,
-    fatConsumed: 0,
-    fatGoal: 65,
-  });
-
-  const progress = Math.min((stats.caloriesConsumed / stats.calorieGoal) * 100, 100);
-
-  return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
-        {/* Encabezado */}
-        <View style={styles.headerContainer}>
-          <Text style={styles.headerSubtitle}>Jueves, 15 de octubre</Text>
-          <Text style={styles.headerTitle}>Resumen</Text>
-        </View>
-
-        {/* Tarjeta Principal de Calorías */}
-        <View style={styles.mainCard}>
-          <Text style={styles.cardLabel}>🔥 Calorías consumidas</Text>
-          <View style={styles.calorieRow}>
-            <Text style={styles.mainValue}>{stats.caloriesConsumed}</Text>
-            <Text style={styles.goalValue}> / {stats.calorieGoal} kcal</Text>
-          </View>
-          
-          <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
-          </View>
-        </View>
-
-        {/* Tarjetas de Macros (Grid estilo Finanzas) */}
-        <Text style={styles.sectionHeading}>Distribución de Macros</Text>
-        <View style={styles.gridContainer}>
-          <View style={styles.macroCard}>
-            <Text style={styles.macroLabel}>Proteínas</Text>
-            <Text style={styles.macroValue}>{stats.proteinConsumed} <Text style={styles.macroSub}>/ {stats.proteinGoal}g</Text></Text>
-            <View style={[styles.miniBar, { backgroundColor: '#FF3B30', width: `${(stats.proteinConsumed / stats.proteinGoal) * 100}%` }]} />
-          </View>
-
-          <View style={styles.macroCard}>
-            <Text style={styles.macroLabel}>Carbohidratos</Text>
-            <Text style={styles.macroValue}>{stats.carbsConsumed} <Text style={styles.macroSub}>/ {stats.carbsGoal}g</Text></Text>
-            <View style={[styles.miniBar, { backgroundColor: '#FF9F0A', width: `${(stats.carbsConsumed / stats.carbsGoal) * 100}%` }]} />
-          </View>
-
-          <View style={styles.macroCard}>
-            <Text style={styles.macroLabel}>Grasas</Text>
-            <Text style={styles.macroValue}>{stats.fatConsumed} <Text style={styles.macroSub}>/ {stats.fatGoal}g</Text></Text>
-            <View style={[styles.miniBar, { backgroundColor: '#30B0C7', width: `${(stats.fatConsumed / stats.fatGoal) * 100}%` }]} />
-          </View>
-        </View>
-
-        {/* Balance Energético */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Balance Diario</Text>
-          <View style={styles.balanceRow}>
-            <View style={styles.balanceItem}>
-              <Text style={styles.balanceNum}>{stats.caloriesConsumed}</Text>
-              <Text style={styles.balanceText}>Consumidas</Text>
-            </View>
-            <Text style={styles.balanceOperator}>−</Text>
-            <View style={styles.balanceItem}>
-              <Text style={styles.balanceNum}>0</Text>
-              <Text style={styles.balanceText}>Quemadas</Text>
-            </View>
-            <Text style={styles.balanceOperator}>=</Text>
-            <View style={styles.balanceItem}>
-              <Text style={[styles.balanceNum, { color: '#34C759' }]}>{stats.calorieGoal - stats.caloriesConsumed}</Text>
-              <Text style={styles.balanceText}>Déficit</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Espaciado de seguridad inferior */}
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </SafeAreaView>
-  );
+{
+  "expo": {
+    "name": "NutriFit",
+    "slug": "nutrifit",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0B0D12",
+    "primaryColor": "#0B0D12",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.andres.nutrifit",
+      "backgroundColor": "#0B0D12",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIStatusBarStyle": "UIStatusBarStyleLightContent"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "backgroundColor": "#0B0D12",
+      "themeColor": "#0B0D12"
+    },
+    "plugins": [
+      "expo-dev-client",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "NutriFit usa la cámara para fotografiar tus platos y estimar sus macros.",
+          "photosPermission": "NutriFit accede a tus fotos para analizar platos de comida."
+        }
+      ]
+    ]
+  }
 }
-
-function ScanScreen() {
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.placeholderContainer}>
-        <Ionicons name="camera" size={48} color="#FF9F0A" />
-        <Text style={styles.placeholderTitle}>Escáner IA</Text>
-        <Text style={styles.placeholderSubtitle}>Próximamente análisis con Gemini 3.5 Flash</Text>
-      </View>
-    </SafeAreaView>
-  );
-}
-
-function ExerciseScreen() {
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.placeholderContainer}>
-        <Ionicons name="barbell" size={48} color="#FF9F0A" />
-        <Text style={styles.placeholderTitle}>Ejercicio</Text>
-        <Text style={styles.placeholderSubtitle}>Registro de entrenamientos y gasto calórico</Text>
-      </View>
-    </SafeAreaView>
-  );
-}
-
-function ProfileScreen() {
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.placeholderContainer}>
-        <Ionicons name="person" size={48} color="#FF9F0A" />
-        <Text style={styles.placeholderTitle}>Perfil</Text>
-        <Text style={styles.placeholderSubtitle}>Ajustes de usuario y metas diarias</Text>
-      </View>
-    </SafeAreaView>
-  );
-}
-
-// ==========================================
-// 2. NAVEGACIÓN Y CONFIGURACIÓN PRINCIPAL
-// ==========================================
-
-const Tab = createBottomTabNavigator();
-
-export default function App() {
-  return (
-    <SafeAreaProvider style={{ flex: 1, backgroundColor: '#0B0D12' }}>
-      <StatusBar style="light" backgroundColor="#0B0D12" translucent />
-      <NavigationContainer>
-        <Tab.Navigator
-          screenOptions={({ route }) => ({
-            headerShown: false,
-            tabBarShowLabel: true,
-            tabBarStyle: {
-              backgroundColor: '#0B0D12',
-              borderTopColor: '#1C1E26',
-              borderTopWidth: 1,
-              height: 70,
-              paddingBottom: 12,
-              paddingTop: 8,
-            },
-            tabBarActiveTintColor: '#FF9F0A',
-            tabBarInactiveTintColor: '#636675',
-            tabBarLabelStyle: {
-              fontSize: 11,
-              fontWeight: '600',
-              marginTop: 2,
-            },
-            tabBarIcon: ({ focused, color, size }) => {
-              let iconName;
-              if (route.name === 'Inicio') {
-                iconName = focused ? 'home' : 'home-outline';
-              } else if (route.name === 'Escanear') {
-                iconName = focused ? 'camera' : 'camera-outline';
-              } else if (route.name === 'Ejercicio') {
-                iconName = focused ? 'barbell' : 'barbell-outline';
-              } else if (route.name === 'Perfil') {
-                iconName = focused ? 'person' : 'person-outline';
-              }
-              return <Ionicons name={iconName} size={22} color={color} />;
-            },
-          })}
-        >
-          <Tab.Screen name="Inicio" component={HomeScreen} />
-          <Tab.Screen name="Escanear" component={ScanScreen} />
-          <Tab.Screen name="Ejercicio" component={ExerciseScreen} />
-          <Tab.Screen name="Perfil" component={ProfileScreen} />
-        </Tab.Navigator>
-      </NavigationContainer>
-    </SafeAreaProvider>
