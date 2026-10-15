@@ -4,6 +4,7 @@
     "slug": "nutrifit",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0B0D12",
     "primaryColor": "#0B0D12",
@@ -19,7 +20,8 @@
     "web": {
       "bundler": "metro",
       "backgroundColor": "#0B0D12",
-      "themeColor": "#0B0D12"
+      "themeColor": "#0B0D12",
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-dev-client",
