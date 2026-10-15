@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
@@ -140,6 +140,28 @@ function ProfileScreen() {
 const Tab = createBottomTabNavigator();
 
 export default function App() {
+  // Ajustes de color de fondo del documento HTML para iOS Safari PWA
+  if (Platform.OS === 'web' && typeof document !== 'undefined') {
+    document.documentElement.style.backgroundColor = '#0B0D12';
+    document.body.style.backgroundColor = '#0B0D12';
+    
+    let metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (!metaThemeColor) {
+      metaThemeColor = document.createElement('meta');
+      metaThemeColor.name = 'theme-color';
+      document.head.appendChild(metaThemeColor);
+    }
+    metaThemeColor.content = '#0B0D12';
+
+    let metaAppleStatus = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    if (!metaAppleStatus) {
+      metaAppleStatus = document.createElement('meta');
+      metaAppleStatus.name = 'apple-mobile-web-app-status-bar-style';
+      document.head.appendChild(metaAppleStatus);
+    }
+    metaAppleStatus.content = 'black-translucent';
+  }
+
   return (
     <SafeAreaProvider style={{ flex: 1, backgroundColor: '#0B0D12' }}>
       <StatusBar style="light" backgroundColor="#0B0D12" translucent />
