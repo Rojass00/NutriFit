@@ -16,7 +16,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
 // ==========================================
-// ESTADO GLOBAL COMPARTIDO
+// ESTADO GLOBAL DEL USUARIO
 // ==========================================
 const DEFAULT_USER_PROFILE = {
   gender: 'hombre', // 'hombre' | 'mujer'
@@ -25,28 +25,30 @@ const DEFAULT_USER_PROFILE = {
   weight: '65',
   activityLevel: 'moderado', // 'sedentario' | 'ligero' | 'moderado' | 'intenso'
   goal: 'recomposicion', // 'deficit' | 'mantenimiento' | 'recomposicion' | 'volumen'
-  isManual: false, // Por defecto en modo automático
+  isManual: false, // Automático por defecto usando Mifflin-St Jeor
   calorieGoal: '2000',
-  proteinGoal: '120',
+  proteinGoal: '130',
   carbsGoal: '220',
-  fatGoal: '65',
+  fatGoal: '60',
 };
 
-// Función para calcular metas automáticas según género, datos y nivel de actividad
-function calculateAutoMetas(p) {
+// ==========================================
+// FÓRMULA CIENTÍFICA OFICIAL (Mifflin-St Jeor)
+// ==========================================
+function calculateMifflinStJeor(p) {
   const age = parseFloat(p.age) || 21;
   const weight = parseFloat(p.weight) || 65;
   const height = parseFloat(p.height) || 170;
 
-  // BMR (Mifflin-St Jeor)
-  let bmr = 10 * weight + 6.25 * height - 5 * age;
+  // 1. Cálculo de BMR (Basal Metabolic Rate)
+  let bmr = (10 * weight) + (6.25 * height) - (5 * age);
   if (p.gender === 'hombre') {
     bmr += 5;
   } else {
     bmr -= 161;
   }
 
-  // Factor de Actividad / Sedentarismo
+  // 2. Multiplicador por Nivel de Actividad / Sedentarismo
   let activityMultiplier = 1.375;
   if (p.activityLevel === 'sedentario') activityMultiplier = 1.2;
   if (p.activityLevel === 'ligero') activityMultiplier = 1.375;
@@ -55,20 +57,20 @@ function calculateAutoMetas(p) {
 
   const tdee = bmr * activityMultiplier;
 
-  // Ajuste según Objetivo
+  // 3. Ajuste según el Objetivo Corporal
   let targetCalories = tdee;
-  if (p.goal === 'deficit') targetCalories = tdee * 0.8; // -20%
-  if (p.goal === 'recomposicion') targetCalories = tdee * 0.9; // -10%
+  if (p.goal === 'deficit') targetCalories = tdee - 500;
+  if (p.goal === 'recomposicion') targetCalories = tdee * 0.9; // Déficit ligero del 10%
   if (p.goal === 'mantenimiento') targetCalories = tdee;
-  if (p.goal === 'volumen') targetCalories = tdee * 1.15; // +15%
+  if (p.goal === 'volumen') targetCalories = tdee + 350;
 
-  const calories = Math.round(targetCalories);
+  const calories = Math.max(1200, Math.round(targetCalories));
 
-  // Macros: Proteína (2g/kg), Grasas (0.9g/kg), Resto Carbs
-  const protein = Math.round(weight * 2.0);
-  const fat = Math.round(weight * 0.9);
-  const remainingCalories = calories - (protein * 4 + fat * 9);
-  const carbs = Math.max(30, Math.round(remainingCalories / 4));
+  // 4. Distribución de Macronutrientes basados en evidencia
+  const protein = Math.round(weight * 2.0); // 2g por kg
+  const fat = Math.round(weight * 0.9);       // 0.9g por kg
+  const remainingCalories = calories - ((protein * 4) + (fat * 9));
+  const carbs = Math.max(50, Math.round(remainingCalories / 4));
 
   return {
     ...p,
@@ -92,9 +94,9 @@ function HomeScreen({ userProfile }) {
   });
 
   const calorieGoal = parseInt(userProfile.calorieGoal) || 2000;
-  const proteinGoal = parseInt(userProfile.proteinGoal) || 120;
+  const proteinGoal = parseInt(userProfile.proteinGoal) || 130;
   const carbsGoal = parseInt(userProfile.carbsGoal) || 220;
-  const fatGoal = parseInt(userProfile.fatGoal) || 65;
+  const fatGoal = parseInt(userProfile.fatGoal) || 60;
 
   const progress = Math.min((stats.caloriesConsumed / calorieGoal) * 100, 100);
 
@@ -203,11 +205,10 @@ function ProfileScreen({ userProfile, setUserProfile }) {
   const [profile, setProfile] = useState(userProfile);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  // Actualizador auxiliar que calcula metas al cambiar cualquier dato si no es manual
   const updateProfileState = (changes) => {
     let updated = { ...profile, ...changes };
     if (!updated.isManual) {
-      updated = calculateAutoMetas(updated);
+      updated = calculateMifflinStJeor(updated);
     }
     setProfile(updated);
   };
@@ -215,7 +216,7 @@ function ProfileScreen({ userProfile, setUserProfile }) {
   const handleToggleManual = (value) => {
     let updated = { ...profile, isManual: value };
     if (!value) {
-      updated = calculateAutoMetas(updated);
+      updated = calculateMifflinStJeor(updated);
     }
     setProfile(updated);
   };
@@ -223,7 +224,7 @@ function ProfileScreen({ userProfile, setUserProfile }) {
   const handleSave = () => {
     let finalProfile = { ...profile };
     if (!finalProfile.isManual) {
-      finalProfile = calculateAutoMetas(finalProfile);
+      finalProfile = calculateMifflinStJeor(finalProfile);
     }
     setUserProfile(finalProfile);
     setSavedSuccess(true);
@@ -236,12 +237,12 @@ function ProfileScreen({ userProfile, setUserProfile }) {
         
         <View style={styles.headerContainer}>
           <Text style={styles.headerTitle}>Perfil & Datos</Text>
-          <Text style={styles.headerSubtitle}>Ajustes de usuario y metas nutricionales</Text>
+          <Text style={styles.headerSubtitle}>Cálculo científico con Mifflin-St Jeor</Text>
         </View>
 
-        {/* Datos Personales & Biométricos */}
+        {/* Datos Antropométricos y Estilo de Vida */}
         <View style={styles.mainCard}>
-          <Text style={styles.sectionTitle}>Datos Antropométricos</Text>
+          <Text style={styles.sectionTitle}>Datos Personales</Text>
           
           {/* Género */}
           <Text style={[styles.inputLabel, { marginTop: 14 }]}>Género Biológico</Text>
@@ -266,6 +267,7 @@ function ProfileScreen({ userProfile, setUserProfile }) {
               <Text style={styles.inputLabel}>Edad</Text>
               <TextInput
                 style={styles.textInput}
+                keyboardCategory="numeric"
                 keyboardType="numeric"
                 value={profile.age}
                 onChangeText={(val) => updateProfileState({ age: val })}
@@ -296,14 +298,14 @@ function ProfileScreen({ userProfile, setUserProfile }) {
             </View>
           </View>
 
-          {/* Nivel de Actividad / Sedentarismo */}
-          <Text style={[styles.inputLabel, { marginTop: 16 }]}>Nivel de Actividad Física</Text>
+          {/* Nivel de Sedentarismo / Actividad */}
+          <Text style={[styles.inputLabel, { marginTop: 16 }]}>Nivel de Actividad / Sedentarismo</Text>
           <View style={styles.pillGrid}>
             {[
-              { id: 'sedentario', label: 'Sedentario (Poco/Nada)' },
-              { id: 'ligero', label: 'Ligero (1-3 días/sem)' },
-              { id: 'moderado', label: 'Moderado (3-5 días/sem)' },
-              { id: 'intenso', label: 'Intenso (6-7 días/sem)' },
+              { id: 'sedentario', label: 'Sedentario (Oficina / Poco ejercicio)' },
+              { id: 'ligero', label: 'Ligero (1-3 días de ejercicio)' },
+              { id: 'moderado', label: 'Moderado (3-5 días de ejercicio)' },
+              { id: 'intenso', label: 'Intenso (6-7 días de entrenamiento)' },
             ].map((item) => (
               <TouchableOpacity
                 key={item.id}
@@ -318,13 +320,13 @@ function ProfileScreen({ userProfile, setUserProfile }) {
           </View>
 
           {/* Objetivo */}
-          <Text style={[styles.inputLabel, { marginTop: 16 }]}>Objetivo Corporal</Text>
+          <Text style={[styles.inputLabel, { marginTop: 16 }]}>Objetivo Nutricional</Text>
           <View style={styles.pillGrid}>
             {[
-              { id: 'deficit', label: 'Déficit (Perder grasa)' },
-              { id: 'recomposicion', label: 'Recomposición' },
-              { id: 'mantenimiento', label: 'Mantenimiento' },
-              { id: 'volumen', label: 'Volumen (Ganar músculo)' },
+              { id: 'deficit', label: 'Déficit (Pérdida de grasa -500 kcal)' },
+              { id: 'recomposicion', label: 'Recomposición corporal' },
+              { id: 'mantenimiento', label: 'Mantenimiento de peso' },
+              { id: 'volumen', label: 'Volumen (Ganancia muscular +350 kcal)' },
             ].map((item) => (
               <TouchableOpacity
                 key={item.id}
@@ -340,13 +342,13 @@ function ProfileScreen({ userProfile, setUserProfile }) {
 
         </View>
 
-        {/* Tarjeta de Metas (Manual vs Automático) */}
+        {/* Tarjeta de Metas (Automático o Manual) */}
         <View style={styles.sectionCard}>
           <View style={styles.switchHeaderRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.sectionTitle}>Ingreso Manual de Metas</Text>
               <Text style={styles.switchSubtext}>
-                {profile.isManual ? 'Defines tus propias metas directamente' : 'Calculadas automáticamente por la app'}
+                {profile.isManual ? 'Sobrescribes los cálculos científicos' : 'Calculado automáticamente por Mifflin-St Jeor'}
               </Text>
             </View>
             <Switch
@@ -407,7 +409,7 @@ function ProfileScreen({ userProfile, setUserProfile }) {
         {/* Botón Guardar */}
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
           <Text style={styles.saveButtonText}>
-            {savedSuccess ? '✓ Metas Actualizadas' : 'Guardar Cambios'}
+            {savedSuccess ? '✓ Metas y Fórmulas Guardadas' : 'Guardar y Actualizar Metas'}
           </Text>
         </TouchableOpacity>
 
