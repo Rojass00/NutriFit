@@ -28,9 +28,9 @@ function HomeScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
-        {/* Encabezado */}
+        {/* Encabezado con fecha más visible */}
         <View style={styles.headerContainer}>
-          <Text style={styles.headerSubtitle}>Jueves, 15 de octubre</Text>
+          <Text style={styles.headerSubtitle}>Jueves, 15 de Octubre</Text>
           <Text style={styles.headerTitle}>Resumen</Text>
         </View>
 
@@ -90,8 +90,8 @@ function HomeScreen() {
           </View>
         </View>
 
-        {/* Espaciado de seguridad inferior */}
-        <View style={{ height: 40 }} />
+        {/* Espaciado de seguridad inferior generoso */}
+        <View style={{ height: 50 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -140,7 +140,6 @@ function ProfileScreen() {
 const Tab = createBottomTabNavigator();
 
 export default function App() {
-  // Ajustes de color de fondo del documento HTML para iOS Safari PWA
   if (Platform.OS === 'web' && typeof document !== 'undefined') {
     document.documentElement.style.backgroundColor = '#0B0D12';
     document.body.style.backgroundColor = '#0B0D12';
@@ -174,9 +173,9 @@ export default function App() {
               backgroundColor: '#0B0D12',
               borderTopColor: '#1C1E26',
               borderTopWidth: 1,
-              height: 70,
-              paddingBottom: 12,
-              paddingTop: 8,
+              height: 84, // Altura optimizada para evitar conflicto con barra de gestos de Apple
+              paddingBottom: 24, // Espacio libre para la barra de Siri / Home Bar
+              paddingTop: 10,
             },
             tabBarActiveTintColor: '#FF9F0A',
             tabBarInactiveTintColor: '#636675',
@@ -221,18 +220,19 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 16, // Margen superior más cómodo debajo de la status bar
     paddingBottom: 20,
   },
   headerContainer: {
     marginBottom: 20,
   },
   headerSubtitle: {
-    color: '#8E8E93',
+    color: '#A1A1AA', // Tono más claro y legible para la fecha
     fontSize: 13,
-    fontWeight: '500',
-    marginBottom: 2,
-    textTransform: 'capitalize',
+    fontWeight: '600',
+    marginBottom: 4,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
   },
   headerTitle: {
     color: '#FFFFFF',
