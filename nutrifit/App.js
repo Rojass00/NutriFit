@@ -39,7 +39,6 @@ function calculateMifflinStJeor(p) {
   const weight = Math.max(30, parseFloat(p.weight) || 66);
   const height = Math.max(100, parseFloat(p.height) || 170);
 
-  // 1. Tasa Metabólica Basal (BMR)
   let bmr = (10 * weight) + (6.25 * height) - (5 * age);
   if (p.gender === 'hombre') {
     bmr += 5;
@@ -47,7 +46,6 @@ function calculateMifflinStJeor(p) {
     bmr -= 161;
   }
 
-  // 2. Multiplicador de Actividad
   let activityMultiplier = 1.375;
   if (p.activityLevel === 'sedentario') activityMultiplier = 1.2;
   if (p.activityLevel === 'ligero') activityMultiplier = 1.375;
@@ -56,7 +54,6 @@ function calculateMifflinStJeor(p) {
 
   const tdee = bmr * activityMultiplier;
 
-  // 3. Ajuste según Objetivo
   let targetCalories = tdee;
   let proteinFactor = 2.0; 
   let fatFactor = 0.9;     
@@ -117,23 +114,21 @@ function HomeScreen({ userProfile }) {
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
-        {/* Header */}
         <View style={styles.headerContainer}>
           <Text style={styles.headerTitle}>Resumen</Text>
-          <Text style={styles.headerSubtitle}>Jueves, 15 de Octubre</Text>
         </View>
 
         {/* Tarjeta Principal */}
         <View style={styles.mainCard}>
           <View style={styles.cardHeaderRow}>
-            <Ionicons name="flame" size={18} color="#FF9F0A" />
+            <Ionicons name="flame" size={18} color="#34C759" />
             <Text style={styles.cardLabel}>Calorías consumidas</Text>
           </View>
 
           <Text style={styles.mainValue}>{stats.caloriesConsumed}</Text>
           
           <Text style={styles.goalSubtext}>
-            de {calorieGoal} kcal {userProfile.mode === 'personalizado' ? '(Modo Personal)' : '(Modo Automático)'}
+            de {calorieGoal} kcal
           </Text>
 
           <View style={styles.progressBarBg}>
@@ -153,7 +148,7 @@ function HomeScreen({ userProfile }) {
           <View style={styles.macroCard}>
             <Text style={styles.macroLabel}>Carbohidratos</Text>
             <Text style={styles.macroValue}>{stats.carbsConsumed} <Text style={styles.macroSub}>/ {carbsGoal}g</Text></Text>
-            <View style={[styles.miniBar, { backgroundColor: '#FF9F0A', width: `${(stats.carbsConsumed / carbsGoal) * 100}%` }]} />
+            <View style={[styles.miniBar, { backgroundColor: '#34C759', width: `${(stats.carbsConsumed / carbsGoal) * 100}%` }]} />
           </View>
 
           <View style={styles.macroCard}>
@@ -194,9 +189,8 @@ function ScanScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.placeholderContainer}>
-        <Ionicons name="camera" size={48} color="#FF9F0A" />
+        <Ionicons name="camera" size={48} color="#34C759" />
         <Text style={styles.placeholderTitle}>Escáner IA</Text>
-        <Text style={styles.placeholderSubtitle}>Análisis automático con Gemini 3.5 Flash</Text>
       </View>
     </SafeAreaView>
   );
@@ -206,9 +200,8 @@ function ExerciseScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.placeholderContainer}>
-        <Ionicons name="barbell" size={48} color="#FF9F0A" />
+        <Ionicons name="barbell" size={48} color="#34C759" />
         <Text style={styles.placeholderTitle}>Ejercicio</Text>
-        <Text style={styles.placeholderSubtitle}>Registro de entrenamientos y gasto calórico</Text>
       </View>
     </SafeAreaView>
   );
@@ -250,25 +243,18 @@ function ProfileScreen({ userProfile, setUserProfile }) {
         
         <View style={styles.headerContainer}>
           <Text style={styles.headerTitle}>Perfil & Metas</Text>
-          <Text style={styles.headerSubtitle}>Elige entre cálculo automático o diseño personal</Text>
         </View>
 
-        {/* SELECTOR DE MODO (AUTOMÁTICO VS PERSONALIZADO) */}
+        {/* SELECTOR DE MODO */}
         <View style={styles.mainCard}>
           <Text style={styles.sectionTitle}>Modo de Configuración</Text>
-          <Text style={styles.switchSubtext} style={{ marginBottom: 12 }}>
-            {profile.mode === 'automatico' 
-              ? 'Calculado automáticamente por ciencia (Mifflin-St Jeor + ISSN)' 
-              : 'Configurado libremente por ti o tu nutriólogo'}
-          </Text>
-
-          <View style={styles.pillRow}>
+          <View style={[styles.pillRow, { marginTop: 12 }]}>
             <TouchableOpacity 
               style={[styles.pillButton, profile.mode === 'automatico' && styles.pillActive]}
               onPress={() => handleModeChange('automatico')}
             >
               <Text style={[styles.pillText, profile.mode === 'automatico' && styles.pillTextActive]}>
-                🤖 Automático
+                Automático
               </Text>
             </TouchableOpacity>
 
@@ -277,13 +263,13 @@ function ProfileScreen({ userProfile, setUserProfile }) {
               onPress={() => handleModeChange('personalizado')}
             >
               <Text style={[styles.pillText, profile.mode === 'personalizado' && styles.pillTextActive]}>
-                📝 Personal / Nutriólogo
+                Personal / Nutriólogo
               </Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* DATOS ANTROPOMÉTRICOS (Útiles siempre para referencia o cálculo automático) */}
+        {/* DATOS ANTROPOMÉTRICOS */}
         <View style={styles.mainCard}>
           <Text style={styles.sectionTitle}>Datos Personales</Text>
           
@@ -384,18 +370,13 @@ function ProfileScreen({ userProfile, setUserProfile }) {
 
         </View>
 
-        {/* TARJETA DE METAS CALÓRICAS Y MACROS (EDITABLE SI ES PERSONAL, BLOQUEADA SI ES AUTOMÁTICO) */}
+        {/* TARJETA DE METAS */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>
             {profile.mode === 'automatico' ? 'Metas Calculadas (Automático)' : 'Metas Personalizadas (Nutriólogo / Libre)'}
           </Text>
-          <Text style={styles.switchSubtext} style={{ marginBottom: 14 }}>
-            {profile.mode === 'automatico' 
-              ? 'Los valores se ajustan solos según tus datos y objetivo.' 
-              : 'Escribe los valores exactos asignados para tu plan.'}
-          </Text>
 
-          <View>
+          <View style={{ marginTop: 14 }}>
             <Text style={styles.inputLabel}>Calorías Objetivo (kcal)</Text>
             <TextInput
               style={[styles.textInputFull, profile.mode === 'automatico' && styles.disabledInput]}
@@ -501,7 +482,7 @@ export default function App() {
               paddingBottom: 24,
               paddingTop: 10,
             },
-            tabBarActiveTintColor: '#FF9F0A',
+            tabBarActiveTintColor: '#34C759',
             tabBarInactiveTintColor: '#636675',
             tabBarLabelStyle: {
               fontSize: 11,
@@ -560,12 +541,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: -0.5,
   },
-  headerSubtitle: {
-    color: '#636675',
-    fontSize: 13,
-    fontWeight: '600',
-    marginTop: 2,
-  },
   mainCard: {
     backgroundColor: '#16181F',
     borderRadius: 22,
@@ -607,7 +582,7 @@ const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#FF9F0A',
+    backgroundColor: '#34C759',
     borderRadius: 4,
   },
   sectionHeading: {
@@ -755,8 +730,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   pillActive: {
-    backgroundColor: '#FF9F0A22',
-    borderColor: '#FF9F0A',
+    backgroundColor: '#34C75922',
+    borderColor: '#34C759',
   },
   pillText: {
     color: '#8E8E93',
@@ -764,21 +739,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   pillTextActive: {
-    color: '#FF9F0A',
+    color: '#34C759',
     fontWeight: '700',
   },
-  switchHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  switchSubtext: {
-    color: '#636675',
-    fontSize: 12,
-    marginTop: 2,
-  },
   saveButton: {
-    backgroundColor: '#FF9F0A',
+    backgroundColor: '#34C759',
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
@@ -799,11 +764,5 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
     marginTop: 12,
-  },
-  placeholderSubtitle: {
-    color: '#8E8E93',
-    fontSize: 14,
-    marginTop: 6,
-    textAlign: 'center',
   },
 });
