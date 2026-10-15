@@ -6,12 +6,20 @@
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0B0D12",
+    "primaryColor": "#0B0D12",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.tuusuario.nutrifit",
+      "bundleIdentifier": "com.andres.nutrifit",
+      "backgroundColor": "#0B0D12",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIStatusBarStyle": "UIStatusBarStyleLightContent"
       }
+    },
+    "web": {
+      "bundler": "metro",
+      "backgroundColor": "#0B0D12",
+      "themeColor": "#0B0D12"
     },
     "plugins": [
       "expo-dev-client",
@@ -20,13 +28,6 @@
         {
           "cameraPermission": "NutriFit usa la cámara para fotografiar tus platos y estimar sus macros.",
           "photosPermission": "NutriFit accede a tus fotos para analizar platos de comida."
-        }
-      ],
-      [
-        "@kingstinct/react-native-healthkit",
-        {
-          "NSHealthShareUsageDescription": "NutriFit lee tus calorías activas y entrenamientos de Apple Health para calcular tu balance diario.",
-          "NSHealthUpdateUsageDescription": "NutriFit guarda tu nutrición y ejercicios manuales en Apple Health."
         }
       ]
     ]
