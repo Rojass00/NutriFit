@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -19,20 +19,68 @@ import { Ionicons } from '@expo/vector-icons';
 // ESTADO GLOBAL COMPARTIDO
 // ==========================================
 const DEFAULT_USER_PROFILE = {
-  age: '19',
+  gender: 'hombre', // 'hombre' | 'mujer'
+  age: '21',
   height: '170',
-  weight: '66',
-  activityLevel: 'moderado', // sedentario, ligero, moderado, intenso
-  goal: 'recomposicion',
-  isManual: true,
+  weight: '65',
+  activityLevel: 'moderado', // 'sedentario' | 'ligero' | 'moderado' | 'intenso'
+  goal: 'recomposicion', // 'deficit' | 'mantenimiento' | 'recomposicion' | 'volumen'
+  isManual: false, // Por defecto en modo automático
   calorieGoal: '2000',
   proteinGoal: '120',
   carbsGoal: '220',
   fatGoal: '65',
 };
 
+// Función para calcular metas automáticas según género, datos y nivel de actividad
+function calculateAutoMetas(p) {
+  const age = parseFloat(p.age) || 21;
+  const weight = parseFloat(p.weight) || 65;
+  const height = parseFloat(p.height) || 170;
+
+  // BMR (Mifflin-St Jeor)
+  let bmr = 10 * weight + 6.25 * height - 5 * age;
+  if (p.gender === 'hombre') {
+    bmr += 5;
+  } else {
+    bmr -= 161;
+  }
+
+  // Factor de Actividad / Sedentarismo
+  let activityMultiplier = 1.375;
+  if (p.activityLevel === 'sedentario') activityMultiplier = 1.2;
+  if (p.activityLevel === 'ligero') activityMultiplier = 1.375;
+  if (p.activityLevel === 'moderado') activityMultiplier = 1.55;
+  if (p.activityLevel === 'intenso') activityMultiplier = 1.725;
+
+  const tdee = bmr * activityMultiplier;
+
+  // Ajuste según Objetivo
+  let targetCalories = tdee;
+  if (p.goal === 'deficit') targetCalories = tdee * 0.8; // -20%
+  if (p.goal === 'recomposicion') targetCalories = tdee * 0.9; // -10%
+  if (p.goal === 'mantenimiento') targetCalories = tdee;
+  if (p.goal === 'volumen') targetCalories = tdee * 1.15; // +15%
+
+  const calories = Math.round(targetCalories);
+
+  // Macros: Proteína (2g/kg), Grasas (0.9g/kg), Resto Carbs
+  const protein = Math.round(weight * 2.0);
+  const fat = Math.round(weight * 0.9);
+  const remainingCalories = calories - (protein * 4 + fat * 9);
+  const carbs = Math.max(30, Math.round(remainingCalories / 4));
+
+  return {
+    ...p,
+    calorieGoal: String(calories),
+    proteinGoal: String(protein),
+    carbsGoal: String(carbs),
+    fatGoal: String(fat),
+  };
+}
+
 // ==========================================
-// 1. PANTALLAS (Screen Components)
+// 1. PANTALLAS
 // ==========================================
 
 function HomeScreen({ userProfile }) {
@@ -133,7 +181,7 @@ function ScanScreen() {
       <View style={styles.placeholderContainer}>
         <Ionicons name="camera" size={48} color="#FF9F0A" />
         <Text style={styles.placeholderTitle}>Escáner IA</Text>
-        <Text style={styles.placeholderSubtitle}>Análisis automático de fotos con Gemini 3.5 Flash</Text>
+        <Text style={styles.placeholderSubtitle}>Análisis automático con Gemini 3.5 Flash</Text>
       </View>
     </SafeAreaView>
   );
@@ -155,52 +203,29 @@ function ProfileScreen({ userProfile, setUserProfile }) {
   const [profile, setProfile] = useState(userProfile);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  // Recalcular metabólicamente si está en modo automático
-  const handleAutoCalculate = (updatedProfile) => {
-    const age = parseFloat(updatedProfile.age) || 19;
-    const weight = parseFloat(updatedProfile.weight) || 66;
-    const height = parseFloat(updatedProfile.height) || 170;
-
-    // BMR (Mifflin-St Jeor para hombres)
-    const bmr = 10 * weight + 6.25 * height - 5 * age + 5;
-    let factor = 1.375; // moderado
-    if (updatedProfile.activityLevel === 'sedentario') factor = 1.2;
-    if (updatedProfile.activityLevel === 'ligero') factor = 1.375;
-    if (updatedProfile.activityLevel === 'moderado') factor = 1.55;
-    if (updatedProfile.activityLevel === 'intenso') factor = 1.725;
-
-    const tdee = Math.round(bmr * factor);
-    // Recomposición corporal (~2000 kcal)
-    const targetCalories = Math.round(tdee * 0.9); 
-
-    // Macros estimados: Proteína (2g/kg), Grasas (0.9g/kg), resto Carbs
-    const protein = Math.round(weight * 2);
-    const fat = Math.round(weight * 0.95);
-    const carbs = Math.round((targetCalories - (protein * 4 + fat * 9)) / 4);
-
-    return {
-      ...updatedProfile,
-      calorieGoal: String(targetCalories),
-      proteinGoal: String(protein),
-      carbsGoal: String(carbs),
-      fatGoal: String(fat),
-    };
+  // Actualizador auxiliar que calcula metas al cambiar cualquier dato si no es manual
+  const updateProfileState = (changes) => {
+    let updated = { ...profile, ...changes };
+    if (!updated.isManual) {
+      updated = calculateAutoMetas(updated);
+    }
+    setProfile(updated);
   };
 
   const handleToggleManual = (value) => {
-    let newProfile = { ...profile, isManual: !value };
-    if (!newProfile.isManual) {
-      newProfile = handleAutoCalculate(newProfile);
+    let updated = { ...profile, isManual: value };
+    if (!value) {
+      updated = calculateAutoMetas(updated);
     }
-    setProfile(newProfile);
+    setProfile(updated);
   };
 
   const handleSave = () => {
-    let updated = { ...profile };
-    if (!profile.isManual) {
-      updated = handleAutoCalculate(updated);
+    let finalProfile = { ...profile };
+    if (!finalProfile.isManual) {
+      finalProfile = calculateAutoMetas(finalProfile);
     }
-    setUserProfile(updated);
+    setUserProfile(finalProfile);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
   };
@@ -214,10 +239,28 @@ function ProfileScreen({ userProfile, setUserProfile }) {
           <Text style={styles.headerSubtitle}>Ajustes de usuario y metas nutricionales</Text>
         </View>
 
-        {/* Tarjeta Usuario */}
+        {/* Datos Personales & Biométricos */}
         <View style={styles.mainCard}>
           <Text style={styles.sectionTitle}>Datos Antropométricos</Text>
           
+          {/* Género */}
+          <Text style={[styles.inputLabel, { marginTop: 14 }]}>Género Biológico</Text>
+          <View style={styles.pillRow}>
+            <TouchableOpacity 
+              style={[styles.pillButton, profile.gender === 'hombre' && styles.pillActive]}
+              onPress={() => updateProfileState({ gender: 'hombre' })}
+            >
+              <Text style={[styles.pillText, profile.gender === 'hombre' && styles.pillTextActive]}>Hombre</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.pillButton, profile.gender === 'mujer' && styles.pillActive]}
+              onPress={() => updateProfileState({ gender: 'mujer' })}
+            >
+              <Text style={[styles.pillText, profile.gender === 'mujer' && styles.pillTextActive]}>Mujer</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Edad, Peso, Altura */}
           <View style={styles.inputRow}>
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Edad</Text>
@@ -225,7 +268,7 @@ function ProfileScreen({ userProfile, setUserProfile }) {
                 style={styles.textInput}
                 keyboardType="numeric"
                 value={profile.age}
-                onChangeText={(val) => setProfile({ ...profile, age: val })}
+                onChangeText={(val) => updateProfileState({ age: val })}
                 placeholderTextColor="#636675"
               />
             </View>
@@ -236,7 +279,7 @@ function ProfileScreen({ userProfile, setUserProfile }) {
                 style={styles.textInput}
                 keyboardType="numeric"
                 value={profile.weight}
-                onChangeText={(val) => setProfile({ ...profile, weight: val })}
+                onChangeText={(val) => updateProfileState({ weight: val })}
                 placeholderTextColor="#636675"
               />
             </View>
@@ -247,20 +290,63 @@ function ProfileScreen({ userProfile, setUserProfile }) {
                 style={styles.textInput}
                 keyboardType="numeric"
                 value={profile.height}
-                onChangeText={(val) => setProfile({ ...profile, height: val })}
+                onChangeText={(val) => updateProfileState({ height: val })}
                 placeholderTextColor="#636675"
               />
             </View>
           </View>
+
+          {/* Nivel de Actividad / Sedentarismo */}
+          <Text style={[styles.inputLabel, { marginTop: 16 }]}>Nivel de Actividad Física</Text>
+          <View style={styles.pillGrid}>
+            {[
+              { id: 'sedentario', label: 'Sedentario (Poco/Nada)' },
+              { id: 'ligero', label: 'Ligero (1-3 días/sem)' },
+              { id: 'moderado', label: 'Moderado (3-5 días/sem)' },
+              { id: 'intenso', label: 'Intenso (6-7 días/sem)' },
+            ].map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={[styles.pillButtonFull, profile.activityLevel === item.id && styles.pillActive]}
+                onPress={() => updateProfileState({ activityLevel: item.id })}
+              >
+                <Text style={[styles.pillText, profile.activityLevel === item.id && styles.pillTextActive]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Objetivo */}
+          <Text style={[styles.inputLabel, { marginTop: 16 }]}>Objetivo Corporal</Text>
+          <View style={styles.pillGrid}>
+            {[
+              { id: 'deficit', label: 'Déficit (Perder grasa)' },
+              { id: 'recomposicion', label: 'Recomposición' },
+              { id: 'mantenimiento', label: 'Mantenimiento' },
+              { id: 'volumen', label: 'Volumen (Ganar músculo)' },
+            ].map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={[styles.pillButtonFull, profile.goal === item.id && styles.pillActive]}
+                onPress={() => updateProfileState({ goal: item.id })}
+              >
+                <Text style={[styles.pillText, profile.goal === item.id && styles.pillTextActive]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
         </View>
 
-        {/* Tarjeta de Metas */}
+        {/* Tarjeta de Metas (Manual vs Automático) */}
         <View style={styles.sectionCard}>
           <View style={styles.switchHeaderRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.sectionTitle}>Ingreso Manual de Metas</Text>
               <Text style={styles.switchSubtext}>
-                {profile.isManual ? 'Defines tus propias metas' : 'Cálculo automático según tu cuerpo'}
+                {profile.isManual ? 'Defines tus propias metas directamente' : 'Calculadas automáticamente por la app'}
               </Text>
             </View>
             <Switch
@@ -603,6 +689,45 @@ const styles = StyleSheet.create({
   },
   disabledInput: {
     opacity: 0.5,
+  },
+  pillRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 6,
+  },
+  pillGrid: {
+    gap: 8,
+    marginTop: 6,
+  },
+  pillButton: {
+    flex: 1,
+    backgroundColor: '#0B0D12',
+    borderWidth: 1,
+    borderColor: '#222530',
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  pillButtonFull: {
+    backgroundColor: '#0B0D12',
+    borderWidth: 1,
+    borderColor: '#222530',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  pillActive: {
+    backgroundColor: '#FF9F0A22',
+    borderColor: '#FF9F0A',
+  },
+  pillText: {
+    color: '#8E8E93',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  pillTextActive: {
+    color: '#FF9F0A',
+    fontWeight: '700',
   },
   switchHeaderRow: {
     flexDirection: 'row',
