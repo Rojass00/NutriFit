@@ -6,8 +6,7 @@ import {
   ScrollView, 
   Platform, 
   TouchableOpacity, 
-  TextInput, 
-  Switch 
+  TextInput 
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -25,7 +24,7 @@ const DEFAULT_USER_PROFILE = {
   weight: '66',
   activityLevel: 'moderado', // 'sedentario' | 'ligero' | 'moderado' | 'intenso'
   goal: 'recomposicion', // 'deficit' | 'mantenimiento' | 'recomposicion' | 'volumen'
-  isManual: false, // Automático por defecto usando Mifflin-St Jeor + ISSN
+  mode: 'automatico', // 'automatico' | 'personalizado'
   calorieGoal: '2000',
   proteinGoal: '145',
   carbsGoal: '205',
@@ -33,16 +32,14 @@ const DEFAULT_USER_PROFILE = {
 };
 
 // ==========================================
-// FÓRMULA CIENTÍFICA CORREGIDA Y ROBUSTA (Mifflin-St Jeor)
+// FÓRMULA CIENTÍFICA (Mifflin-St Jeor + ISSN)
 // ==========================================
 function calculateMifflinStJeor(p) {
-  // Validación robusta para evitar NaN si el usuario borra una caja de texto
   const age = Math.max(10, parseFloat(p.age) || 19);
   const weight = Math.max(30, parseFloat(p.weight) || 66);
   const height = Math.max(100, parseFloat(p.height) || 170);
 
-  // 1. Tasa Metabólica Basal (BMR) - Ecuación Mifflin-St Jeor
-  // Ponderación exacta: Edad (-5 kcal/año) y Estatura (+6.25 kcal/cm)
+  // 1. Tasa Metabólica Basal (BMR)
   let bmr = (10 * weight) + (6.25 * height) - (5 * age);
   if (p.gender === 'hombre') {
     bmr += 5;
@@ -50,7 +47,7 @@ function calculateMifflinStJeor(p) {
     bmr -= 161;
   }
 
-  // 2. Factor de Actividad / Sedentarismo
+  // 2. Multiplicador de Actividad
   let activityMultiplier = 1.375;
   if (p.activityLevel === 'sedentario') activityMultiplier = 1.2;
   if (p.activityLevel === 'ligero') activityMultiplier = 1.375;
@@ -59,39 +56,33 @@ function calculateMifflinStJeor(p) {
 
   const tdee = bmr * activityMultiplier;
 
-  // 3. Ajuste de Calorías y Factores de Macronutrientes según Objetivo
+  // 3. Ajuste según Objetivo
   let targetCalories = tdee;
-  let proteinFactor = 2.0; // g/kg
-  let fatFactor = 0.9;     // g/kg
+  let proteinFactor = 2.0; 
+  let fatFactor = 0.9;     
 
   if (p.goal === 'deficit') {
-    targetCalories = tdee - 500; // Déficit calórico
-    proteinFactor = 2.4;         // Proteína ALTA para preservar masa muscular
-    fatFactor = 0.7;             // Grasas moderadas-bajas
+    targetCalories = tdee - 500;
+    proteinFactor = 2.4;         
+    fatFactor = 0.7;             
   } else if (p.goal === 'recomposicion') {
-    targetCalories = tdee * 0.9; // Déficit ligero del 10%
-    proteinFactor = 2.2;         // Proteína alta para síntesis y quema
-    fatFactor = 0.8;             // Grasas equilibradas
+    targetCalories = tdee * 0.9; 
+    proteinFactor = 2.2;         
+    fatFactor = 0.8;             
   } else if (p.goal === 'mantenimiento') {
     targetCalories = tdee;
-    proteinFactor = 1.9;         // Proteína moderada
-    fatFactor = 0.9;             // Grasas estándar
+    proteinFactor = 1.9;         
+    fatFactor = 0.9;             
   } else if (p.goal === 'volumen') {
-    targetCalories = tdee + 350; // Superávit controlado para ganancia muscular
-    proteinFactor = 1.8;         // Proteína óptima
-    fatFactor = 1.1;             // Grasas más altas
+    targetCalories = tdee + 350; 
+    proteinFactor = 1.8;         
+    fatFactor = 1.1;             
   }
 
   const calories = Math.max(1200, Math.round(targetCalories));
-
-  // 4. Cálculo exacto en gramos de Proteínas y Grasas
   const protein = Math.round(weight * proteinFactor);
   const fat = Math.round(weight * fatFactor);
-
-  // 5. Los Carbohidratos cubren el resto del presupuesto calórico (4 kcal/g)
-  const proteinCalories = protein * 4;
-  const fatCalories = fat * 9;
-  const remainingCalories = calories - (proteinCalories + fatCalories);
+  const remainingCalories = calories - ((protein * 4) + (fat * 9));
   const carbs = Math.max(40, Math.round(remainingCalories / 4));
 
   return {
@@ -126,7 +117,7 @@ function HomeScreen({ userProfile }) {
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
-        {/* Header estilo Finanzas */}
+        {/* Header */}
         <View style={styles.headerContainer}>
           <Text style={styles.headerTitle}>Resumen</Text>
           <Text style={styles.headerSubtitle}>Jueves, 15 de Octubre</Text>
@@ -142,7 +133,7 @@ function HomeScreen({ userProfile }) {
           <Text style={styles.mainValue}>{stats.caloriesConsumed}</Text>
           
           <Text style={styles.goalSubtext}>
-            de {calorieGoal} kcal
+            de {calorieGoal} kcal {userProfile.mode === 'personalizado' ? '(Modo Personal)' : '(Modo Automático)'}
           </Text>
 
           <View style={styles.progressBarBg}>
@@ -229,15 +220,15 @@ function ProfileScreen({ userProfile, setUserProfile }) {
 
   const updateProfileState = (changes) => {
     let updated = { ...profile, ...changes };
-    if (!updated.isManual) {
+    if (updated.mode === 'automatico') {
       updated = calculateMifflinStJeor(updated);
     }
     setProfile(updated);
   };
 
-  const handleToggleManual = (value) => {
-    let updated = { ...profile, isManual: value };
-    if (!value) {
+  const handleModeChange = (newMode) => {
+    let updated = { ...profile, mode: newMode };
+    if (newMode === 'automatico') {
       updated = calculateMifflinStJeor(updated);
     }
     setProfile(updated);
@@ -245,7 +236,7 @@ function ProfileScreen({ userProfile, setUserProfile }) {
 
   const handleSave = () => {
     let finalProfile = { ...profile };
-    if (!finalProfile.isManual) {
+    if (finalProfile.mode === 'automatico') {
       finalProfile = calculateMifflinStJeor(finalProfile);
     }
     setUserProfile(finalProfile);
@@ -258,15 +249,44 @@ function ProfileScreen({ userProfile, setUserProfile }) {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         <View style={styles.headerContainer}>
-          <Text style={styles.headerTitle}>Perfil & Datos</Text>
-          <Text style={styles.headerSubtitle}>Cálculo científico con Mifflin-St Jeor & ISSN</Text>
+          <Text style={styles.headerTitle}>Perfil & Metas</Text>
+          <Text style={styles.headerSubtitle}>Elige entre cálculo automático o diseño personal</Text>
         </View>
 
-        {/* Datos Antropométricos */}
+        {/* SELECTOR DE MODO (AUTOMÁTICO VS PERSONALIZADO) */}
+        <View style={styles.mainCard}>
+          <Text style={styles.sectionTitle}>Modo de Configuración</Text>
+          <Text style={styles.switchSubtext} style={{ marginBottom: 12 }}>
+            {profile.mode === 'automatico' 
+              ? 'Calculado automáticamente por ciencia (Mifflin-St Jeor + ISSN)' 
+              : 'Configurado libremente por ti o tu nutriólogo'}
+          </Text>
+
+          <View style={styles.pillRow}>
+            <TouchableOpacity 
+              style={[styles.pillButton, profile.mode === 'automatico' && styles.pillActive]}
+              onPress={() => handleModeChange('automatico')}
+            >
+              <Text style={[styles.pillText, profile.mode === 'automatico' && styles.pillTextActive]}>
+                🤖 Automático
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.pillButton, profile.mode === 'personalizado' && styles.pillActive]}
+              onPress={() => handleModeChange('personalizado')}
+            >
+              <Text style={[styles.pillText, profile.mode === 'personalizado' && styles.pillTextActive]}>
+                📝 Personal / Nutriólogo
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* DATOS ANTROPOMÉTRICOS (Útiles siempre para referencia o cálculo automático) */}
         <View style={styles.mainCard}>
           <Text style={styles.sectionTitle}>Datos Personales</Text>
           
-          {/* Género */}
           <Text style={[styles.inputLabel, { marginTop: 14 }]}>Género Biológico</Text>
           <View style={styles.pillRow}>
             <TouchableOpacity 
@@ -283,7 +303,6 @@ function ProfileScreen({ userProfile, setUserProfile }) {
             </TouchableOpacity>
           </View>
 
-          {/* Edad, Peso, Altura */}
           <View style={styles.inputRow}>
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Edad</Text>
@@ -319,73 +338,69 @@ function ProfileScreen({ userProfile, setUserProfile }) {
             </View>
           </View>
 
-          {/* Nivel de Actividad */}
-          <Text style={[styles.inputLabel, { marginTop: 16 }]}>Nivel de Actividad / Sedentarismo</Text>
-          <View style={styles.pillGrid}>
-            {[
-              { id: 'sedentario', label: 'Sedentario (Oficina / Poco ejercicio)' },
-              { id: 'ligero', label: 'Ligero (1-3 días de ejercicio)' },
-              { id: 'moderado', label: 'Moderado (3-5 días de ejercicio)' },
-              { id: 'intenso', label: 'Intenso (6-7 días de entrenamiento)' },
-            ].map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={[styles.pillButtonFull, profile.activityLevel === item.id && styles.pillActive]}
-                onPress={() => updateProfileState({ activityLevel: item.id })}
-              >
-                <Text style={[styles.pillText, profile.activityLevel === item.id && styles.pillTextActive]}>
-                  {item.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          {profile.mode === 'automatico' && (
+            <>
+              <Text style={[styles.inputLabel, { marginTop: 16 }]}>Nivel de Actividad / Sedentarismo</Text>
+              <View style={styles.pillGrid}>
+                {[
+                  { id: 'sedentario', label: 'Sedentario (Oficina / Poco ejercicio)' },
+                  { id: 'ligero', label: 'Ligero (1-3 días de ejercicio)' },
+                  { id: 'moderado', label: 'Moderado (3-5 días de ejercicio)' },
+                  { id: 'intenso', label: 'Intenso (6-7 días de entrenamiento)' },
+                ].map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[styles.pillButtonFull, profile.activityLevel === item.id && styles.pillActive]}
+                    onPress={() => updateProfileState({ activityLevel: item.id })}
+                  >
+                    <Text style={[styles.pillText, profile.activityLevel === item.id && styles.pillTextActive]}>
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-          {/* Objetivo */}
-          <Text style={[styles.inputLabel, { marginTop: 16 }]}>Objetivo Nutricional</Text>
-          <View style={styles.pillGrid}>
-            {[
-              { id: 'deficit', label: 'Déficit (Pérdida de grasa - Proteína alta)' },
-              { id: 'recomposicion', label: 'Recomposición corporal' },
-              { id: 'mantenimiento', label: 'Mantenimiento de peso' },
-              { id: 'volumen', label: 'Volumen (Ganancia muscular)' },
-            ].map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={[styles.pillButtonFull, profile.goal === item.id && styles.pillActive]}
-                onPress={() => updateProfileState({ goal: item.id })}
-              >
-                <Text style={[styles.pillText, profile.goal === item.id && styles.pillTextActive]}>
-                  {item.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+              <Text style={[styles.inputLabel, { marginTop: 16 }]}>Objetivo Nutricional</Text>
+              <View style={styles.pillGrid}>
+                {[
+                  { id: 'deficit', label: 'Déficit (Pérdida de grasa - Proteína alta)' },
+                  { id: 'recomposicion', label: 'Recomposición corporal' },
+                  { id: 'mantenimiento', label: 'Mantenimiento de peso' },
+                  { id: 'volumen', label: 'Volumen (Ganancia muscular)' },
+                ].map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[styles.pillButtonFull, profile.goal === item.id && styles.pillActive]}
+                    onPress={() => updateProfileState({ goal: item.id })}
+                  >
+                    <Text style={[styles.pillText, profile.goal === item.id && styles.pillTextActive]}>
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
 
         </View>
 
-        {/* Tarjeta de Metas (Automático o Manual) */}
+        {/* TARJETA DE METAS CALÓRICAS Y MACROS (EDITABLE SI ES PERSONAL, BLOQUEADA SI ES AUTOMÁTICO) */}
         <View style={styles.sectionCard}>
-          <View style={styles.switchHeaderRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.sectionTitle}>Ingreso Manual de Metas</Text>
-              <Text style={styles.switchSubtext}>
-                {profile.isManual ? 'Sobrescribes los cálculos científicos' : 'Calculado automáticamente por Mifflin-St Jeor'}
-              </Text>
-            </View>
-            <Switch
-              trackColor={{ false: '#222530', true: '#FF9F0A' }}
-              thumbColor={profile.isManual ? '#ffffff' : '#8E8E93'}
-              onValueChange={handleToggleManual}
-              value={profile.isManual}
-            />
-          </View>
+          <Text style={styles.sectionTitle}>
+            {profile.mode === 'automatico' ? 'Metas Calculadas (Automático)' : 'Metas Personalizadas (Nutriólogo / Libre)'}
+          </Text>
+          <Text style={styles.switchSubtext} style={{ marginBottom: 14 }}>
+            {profile.mode === 'automatico' 
+              ? 'Los valores se ajustan solos según tus datos y objetivo.' 
+              : 'Escribe los valores exactos asignados para tu plan.'}
+          </Text>
 
-          <View style={{ marginTop: 16 }}>
+          <View>
             <Text style={styles.inputLabel}>Calorías Objetivo (kcal)</Text>
             <TextInput
-              style={[styles.textInputFull, !profile.isManual && styles.disabledInput]}
+              style={[styles.textInputFull, profile.mode === 'automatico' && styles.disabledInput]}
               keyboardType="numeric"
-              editable={profile.isManual}
+              editable={profile.mode === 'personalizado'}
               value={profile.calorieGoal}
               onChangeText={(val) => setProfile({ ...profile, calorieGoal: val })}
             />
@@ -395,9 +410,9 @@ function ProfileScreen({ userProfile, setUserProfile }) {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Proteína (g)</Text>
               <TextInput
-                style={[styles.textInput, !profile.isManual && styles.disabledInput]}
+                style={[styles.textInput, profile.mode === 'automatico' && styles.disabledInput]}
                 keyboardType="numeric"
-                editable={profile.isManual}
+                editable={profile.mode === 'personalizado'}
                 value={profile.proteinGoal}
                 onChangeText={(val) => setProfile({ ...profile, proteinGoal: val })}
               />
@@ -406,9 +421,9 @@ function ProfileScreen({ userProfile, setUserProfile }) {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Carbs (g)</Text>
               <TextInput
-                style={[styles.textInput, !profile.isManual && styles.disabledInput]}
+                style={[styles.textInput, profile.mode === 'automatico' && styles.disabledInput]}
                 keyboardType="numeric"
-                editable={profile.isManual}
+                editable={profile.mode === 'personalizado'}
                 value={profile.carbsGoal}
                 onChangeText={(val) => setProfile({ ...profile, carbsGoal: val })}
               />
@@ -417,9 +432,9 @@ function ProfileScreen({ userProfile, setUserProfile }) {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Grasas (g)</Text>
               <TextInput
-                style={[styles.textInput, !profile.isManual && styles.disabledInput]}
+                style={[styles.textInput, profile.mode === 'automatico' && styles.disabledInput]}
                 keyboardType="numeric"
-                editable={profile.isManual}
+                editable={profile.mode === 'personalizado'}
                 value={profile.fatGoal}
                 onChangeText={(val) => setProfile({ ...profile, fatGoal: val })}
               />
