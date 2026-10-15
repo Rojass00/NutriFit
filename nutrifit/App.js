@@ -20,27 +20,29 @@ import { Ionicons } from '@expo/vector-icons';
 // ==========================================
 const DEFAULT_USER_PROFILE = {
   gender: 'hombre', // 'hombre' | 'mujer'
-  age: '21',
+  age: '19',
   height: '170',
-  weight: '65',
+  weight: '66',
   activityLevel: 'moderado', // 'sedentario' | 'ligero' | 'moderado' | 'intenso'
   goal: 'recomposicion', // 'deficit' | 'mantenimiento' | 'recomposicion' | 'volumen'
   isManual: false, // Automático por defecto usando Mifflin-St Jeor + ISSN
-  calorieGoal: '1980',
-  proteinGoal: '143',
-  carbsGoal: '202',
-  fatGoal: '52',
+  calorieGoal: '2000',
+  proteinGoal: '145',
+  carbsGoal: '205',
+  fatGoal: '53',
 };
 
 // ==========================================
-// FÓRMULA CIENTÍFICA DINÁMICA (Mifflin-St Jeor + ISSN)
+// FÓRMULA CIENTÍFICA CORREGIDA Y ROBUSTA (Mifflin-St Jeor)
 // ==========================================
 function calculateMifflinStJeor(p) {
-  const age = parseFloat(p.age) || 21;
-  const weight = parseFloat(p.weight) || 65;
-  const height = parseFloat(p.height) || 170;
+  // Validación robusta para evitar NaN si el usuario borra una caja de texto
+  const age = Math.max(10, parseFloat(p.age) || 19);
+  const weight = Math.max(30, parseFloat(p.weight) || 66);
+  const height = Math.max(100, parseFloat(p.height) || 170);
 
   // 1. Tasa Metabólica Basal (BMR) - Ecuación Mifflin-St Jeor
+  // Ponderación exacta: Edad (-5 kcal/año) y Estatura (+6.25 kcal/cm)
   let bmr = (10 * weight) + (6.25 * height) - (5 * age);
   if (p.gender === 'hombre') {
     bmr += 5;
@@ -63,9 +65,9 @@ function calculateMifflinStJeor(p) {
   let fatFactor = 0.9;     // g/kg
 
   if (p.goal === 'deficit') {
-    targetCalories = tdee - 500; // Déficit para pérdida de grasa
-    proteinFactor = 2.4;         // Proteína alta para preservar masa muscular
-    fatFactor = 0.7;             // Grasas moderadas
+    targetCalories = tdee - 500; // Déficit calórico
+    proteinFactor = 2.4;         // Proteína ALTA para preservar masa muscular
+    fatFactor = 0.7;             // Grasas moderadas-bajas
   } else if (p.goal === 'recomposicion') {
     targetCalories = tdee * 0.9; // Déficit ligero del 10%
     proteinFactor = 2.2;         // Proteína alta para síntesis y quema
@@ -77,12 +79,12 @@ function calculateMifflinStJeor(p) {
   } else if (p.goal === 'volumen') {
     targetCalories = tdee + 350; // Superávit controlado para ganancia muscular
     proteinFactor = 1.8;         // Proteína óptima
-    fatFactor = 1.1;             // Grasas más altas para densidad calórica
+    fatFactor = 1.1;             // Grasas más altas
   }
 
   const calories = Math.max(1200, Math.round(targetCalories));
 
-  // 4. Cálculo exacto en gramos
+  // 4. Cálculo exacto en gramos de Proteínas y Grasas
   const protein = Math.round(weight * proteinFactor);
   const fat = Math.round(weight * fatFactor);
 
@@ -114,9 +116,9 @@ function HomeScreen({ userProfile }) {
   });
 
   const calorieGoal = parseInt(userProfile.calorieGoal) || 2000;
-  const proteinGoal = parseInt(userProfile.proteinGoal) || 130;
-  const carbsGoal = parseInt(userProfile.carbsGoal) || 220;
-  const fatGoal = parseInt(userProfile.fatGoal) || 60;
+  const proteinGoal = parseInt(userProfile.proteinGoal) || 145;
+  const carbsGoal = parseInt(userProfile.carbsGoal) || 205;
+  const fatGoal = parseInt(userProfile.fatGoal) || 53;
 
   const progress = Math.min((stats.caloriesConsumed / calorieGoal) * 100, 100);
 
@@ -260,7 +262,7 @@ function ProfileScreen({ userProfile, setUserProfile }) {
           <Text style={styles.headerSubtitle}>Cálculo científico con Mifflin-St Jeor & ISSN</Text>
         </View>
 
-        {/* Datos Antropométricos y Estilo de Vida */}
+        {/* Datos Antropométricos */}
         <View style={styles.mainCard}>
           <Text style={styles.sectionTitle}>Datos Personales</Text>
           
@@ -317,7 +319,7 @@ function ProfileScreen({ userProfile, setUserProfile }) {
             </View>
           </View>
 
-          {/* Nivel de Sedentarismo / Actividad */}
+          {/* Nivel de Actividad */}
           <Text style={[styles.inputLabel, { marginTop: 16 }]}>Nivel de Actividad / Sedentarismo</Text>
           <View style={styles.pillGrid}>
             {[
