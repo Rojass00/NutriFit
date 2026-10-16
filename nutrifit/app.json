@@ -16,13 +16,13 @@
         "ITSAppUsesNonExemptEncryption": false,
         "UIStatusBarStyle": "UIStatusBarStyleLightContent"
       }
-    },
-    "web": {
+  "web": {
       "bundler": "metro",
       "backgroundColor": "#0B0D12",
       "themeColor": "#0B0D12",
-      "favicon": "./assets/favicon.png"
-    },
+      "favicon": "./assets/favicon.png",
+      "appleTouchIcon": "./assets/icon.png"
+    }
     "plugins": [
       "expo-dev-client",
       [
