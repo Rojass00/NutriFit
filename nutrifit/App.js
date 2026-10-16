@@ -464,6 +464,15 @@ export default function App() {
       document.head.appendChild(metaAppleStatus);
     }
     metaAppleStatus.content = 'black-translucent';
+
+    // Inyección explícita del icono de Apple Touch para evitar la 'I' gris en iOS PWA
+    let appleTouchIcon = document.querySelector('link[rel="apple-touch-icon"]');
+    if (!appleTouchIcon) {
+      appleTouchIcon = document.createElement('link');
+      appleTouchIcon.rel = 'apple-touch-icon';
+      document.head.appendChild(appleTouchIcon);
+    }
+    appleTouchIcon.href = './assets/icon.png';
   }
 
   return (
