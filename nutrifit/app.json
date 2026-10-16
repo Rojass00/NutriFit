@@ -16,20 +16,21 @@
         "ITSAppUsesNonExemptEncryption": false,
         "UIStatusBarStyle": "UIStatusBarStyleLightContent"
       }
-  "web": {
+    },
+    "web": {
       "bundler": "metro",
       "backgroundColor": "#0B0D12",
       "themeColor": "#0B0D12",
       "favicon": "./assets/favicon.png",
       "appleTouchIcon": "./assets/icon.png"
-    }
+    },
     "plugins": [
       "expo-dev-client",
       [
         "expo-image-picker",
         {
           "cameraPermission": "NutriFit usa la cámara para fotografiar tus platos y estimar sus macros.",
-          "photosPermission": "NutriFit accede a tus fotos para analizar platos de comida."
+          "photosPermission": "NutriFit accede à tus fotos para analizar platos de comida."
         }
       ]
     ]
