@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Flame, Camera, Dumbbell, User, Check, Utensils, Trash2, Edit2, X } from 'lucide-react';
+import { Flame, Camera, Dumbbell, User, Check, Utensils, Trash2, Edit2, X, Pencil } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
 // Inicializar cliente de Supabase
@@ -646,7 +646,7 @@ export default function Home() {
   );
 }
 
-// Componente para manejar gestos de deslizamiento (Swipe Right = Editar, Swipe Left = Eliminar)
+// Componente para manejar gestos de deslizamiento con la función de Editar y Eliminar integrada
 function SwipeableFoodCard({ item, onEdit, onDelete }) {
   const [offsetX, setOffsetX] = useState(0);
   const [startX, setStartX] = useState(0);
