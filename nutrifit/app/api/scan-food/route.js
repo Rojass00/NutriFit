@@ -3,7 +3,7 @@ import { GoogleGenAI } from '@google/genai';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-export async function POST(request: Request) {
+export async function POST(request) {
   try {
     const { image } = await request.json();
 
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     const nutritionData = JSON.parse(cleanJson);
 
     return NextResponse.json({ success: true, data: nutritionData });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error al procesar la imagen con Gemini:', error);
     return NextResponse.json({ error: error.message || 'Error interno al analizar el alimento' }, { status: 500 });
   }
