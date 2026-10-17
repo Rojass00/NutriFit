@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Flame, Camera, Dumbbell, User, Check } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
-// Inicializar cliente de Supabase de forma segura para evitar errores de compilación
+// Inicializar cliente de Supabase de forma segura
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -45,24 +45,24 @@ function calculateMifflinStJeor(p) {
 
   let targetCalories = tdee;
   let proteinFactor = 2.0; 
-  let fatFactor = 0.9;     
+  let fatFactor = 0.9;    
 
   if (p.goal === 'deficit') {
     targetCalories = tdee - 500;
-    proteinFactor = 2.4;         
-    fatFactor = 0.7;             
+    proteinFactor = 2.4;        
+    fatFactor = 0.7;            
   } else if (p.goal === 'recomposicion') {
     targetCalories = tdee * 0.9; 
-    proteinFactor = 2.2;         
-    fatFactor = 0.8;             
+    proteinFactor = 2.2;        
+    fatFactor = 0.8;            
   } else if (p.goal === 'mantenimiento') {
     targetCalories = tdee;
-    proteinFactor = 1.9;         
-    fatFactor = 0.9;             
+    proteinFactor = 1.9;        
+    fatFactor = 0.9;            
   } else if (p.goal === 'volumen') {
     targetCalories = tdee + 350; 
-    proteinFactor = 1.8;         
-    fatFactor = 1.1;             
+    proteinFactor = 1.8;        
+    fatFactor = 1.1;            
   }
 
   const calories = Math.max(1200, Math.round(targetCalories));
@@ -367,82 +367,113 @@ function ProfileSection({ userProfile, setUserProfile }) {
       {/* METAS */}
       <div style={{ backgroundColor: '#16181F', borderRadius: '22px', padding: '20px', border: '1px solid #222530', marginBottom: '20px' }}>
         <div style={{ fontSize: '17px', fontWeight: '700', marginBottom: '14px' }}>
-          {profile.mode === 'automatico' ? 'Metas Calculadas (Automático)' : 'Metas Personalizadas'}
+          Metas Nutricionales {profile.mode === 'automatico' ? '(Calculadas)' : '(Personalizadas)'}
         </div>
-        <div style={{ marginBottom: '14px' }}>
-          <div style={{ color: '#8E8E93', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Calorías Objetivo (kcal)</div>
-          <input type="number" disabled={profile.mode === 'automatico'} value={profile.calorieGoal} onChange={(e) => setProfile({ ...profile, calorieGoal: e.target.value })} style={{ ...inputStyle, opacity: profile.mode === 'automatico' ? 0.5 : 1 }} />
+        
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ color: '#8E8E93', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Calorías (kcal)</div>
+          <input 
+            type="number" 
+            value={profile.calorieGoal} 
+            disabled={profile.mode === 'automatico'}
+            onChange={(e) => updateProfileState({ calorieGoal: e.target.value })} 
+            style={{ ...inputStyle, opacity: profile.mode === 'automatico' ? 0.7 : 1 }} 
+          />
         </div>
+
         <div style={{ display: 'flex', gap: '10px' }}>
           <div style={{ flex: 1 }}>
             <div style={{ color: '#8E8E93', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Proteína (g)</div>
-            <input type="number" disabled={profile.mode === 'automatico'} value={profile.proteinGoal} onChange={(e) => setProfile({ ...profile, proteinGoal: e.target.value })} style={{ ...inputStyle, opacity: profile.mode === 'automatico' ? 0.5 : 1 }} />
+            <input 
+              type="number" 
+              value={profile.proteinGoal} 
+              disabled={profile.mode === 'automatico'}
+              onChange={(e) => updateProfileState({ proteinGoal: e.target.value })} 
+              style={{ ...inputStyle, opacity: profile.mode === 'automatico' ? 0.7 : 1 }} 
+            />
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ color: '#8E8E93', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Carbs (g)</div>
-            <input type="number" disabled={profile.mode === 'automatico'} value={profile.carbsGoal} onChange={(e) => setProfile({ ...profile, carbsGoal: e.target.value })} style={{ ...inputStyle, opacity: profile.mode === 'automatico' ? 0.5 : 1 }} />
+            <input 
+              type="number" 
+              value={profile.carbsGoal} 
+              disabled={profile.mode === 'automatico'}
+              onChange={(e) => updateProfileState({ carbsGoal: e.target.value })} 
+              style={{ ...inputStyle, opacity: profile.mode === 'automatico' ? 0.7 : 1 }} 
+            />
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ color: '#8E8E93', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Grasas (g)</div>
-            <input type="number" disabled={profile.mode === 'automatico'} value={profile.fatGoal} onChange={(e) => setProfile({ ...profile, fatGoal: e.target.value })} style={{ ...inputStyle, opacity: profile.mode === 'automatico' ? 0.5 : 1 }} />
+            <input 
+              type="number" 
+              value={profile.fatGoal} 
+              disabled={profile.mode === 'automatico'}
+              onChange={(e) => updateProfileState({ fatGoal: e.target.value })} 
+              style={{ ...inputStyle, opacity: profile.mode === 'automatico' ? 0.7 : 1 }} 
+            />
           </div>
         </div>
       </div>
 
-      <button onClick={handleSave} style={{ width: '100%', backgroundColor: '#34C759', color: '#0B0D12', borderRadius: '16px', padding: '16px', fontWeight: '800', fontSize: '16px', border: 'none', cursor: 'pointer' }}>
-        {savedSuccess ? '✓ Metas y Fórmulas Guardadas' : 'Guardar y Actualizar Metas'}
+      {/* BOTÓN GUARDAR */}
+      <button 
+        onClick={handleSave}
+        style={{
+          width: '100%',
+          backgroundColor: '#34C759',
+          color: '#000000',
+          fontWeight: '700',
+          padding: '16px',
+          borderRadius: '16px',
+          border: 'none',
+          cursor: 'pointer',
+          fontSize: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          boxShadow: '0 4px 12px rgba(52, 199, 89, 0.3)',
+          marginBottom: '20px'
+        }}
+      >
+        {savedSuccess && <Check size={20} />}
+        {savedSuccess ? '¡Metas Guardadas!' : 'Guardar y Actualizar Metas'}
       </button>
     </div>
   );
 }
 
-const navBtnStyle = (active) => ({
-  background: 'none',
-  border: 'none',
-  color: active ? '#34C759' : '#636675',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  fontSize: '11px',
-  fontWeight: '600',
-  gap: '2px',
-  cursor: 'pointer',
-});
+function pillStyle(active) {
+  return {
+    flex: 1,
+    padding: '12px',
+    borderRadius: '14px',
+    border: active ? '1.5px solid #34C759' : '1px solid #222530',
+    backgroundColor: active ? 'rgba(52, 199, 89, 0.1)' : '#0B0D12',
+    color: active ? '#34C759' : '#FFFFFF',
+    fontWeight: '600',
+    fontSize: '14px',
+    cursor: 'pointer',
+    textAlign: 'center',
+  };
+}
 
-const pillStyle = (active) => ({
-  flex: 1,
-  backgroundColor: active ? '#34C75922' : '#0B0D12',
-  border: `1px solid ${active ? '#34C759' : '#222530'}`,
-  color: active ? '#34C759' : '#8E8E93',
-  borderRadius: '12px',
-  padding: '10px',
-  fontWeight: active ? '700' : '600',
-  fontSize: '13px',
-  cursor: 'pointer',
-});
-
-const pillFullStyle = (active) => ({
-  width: '100%',
-  backgroundColor: active ? '#34C75922' : '#0B0D12',
-  border: `1px solid ${active ? '#34C759' : '#222530'}`,
-  color: active ? '#34C759' : '#8E8E93',
-  borderRadius: '12px',
-  padding: '10px 14px',
-  textAlign: 'left',
-  fontWeight: active ? '700' : '600',
-  fontSize: '13px',
-  cursor: 'pointer',
-});
+function pillFullStyle(active) {
+  return {
+    width: '100%',
+    padding: '12px 16px',
+    borderRadius: '14px',
+    border: active ? '1.5px solid #34C759' : '1px solid #222530',
+    backgroundColor: active ? 'rgba(52, 199, 89, 0.1)' : '#0B0D12',
+    color: active ? '#34C759' : '#FFFFFF',
+    fontWeight: '600',
+    fontSize: '13px',
+    cursor: 'pointer',
+    textAlign: 'left',
+  };
+}
 
 const inputStyle = {
   width: '100%',
   backgroundColor: '#0B0D12',
   border: '1px solid #222530',
-  borderRadius: '12px',
-  color: '#FFFFFF',
-  padding: '10px 12px',
-  fontSize: '15px',
-  fontWeight: '600',
-  outline: 'none',
-  boxSizing: 'border-box',
-};
