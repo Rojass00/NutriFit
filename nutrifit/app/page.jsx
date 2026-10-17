@@ -1,7 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Flame, Camera, Dumbbell, User, Check } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
+
+// Inicializar cliente de Supabase con tus variables públicas de Vercel
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const DEFAULT_USER_PROFILE = {
   gender: 'hombre',
@@ -83,6 +89,38 @@ export default function Home() {
     carbsConsumed: 0,
     fatConsumed: 0,
   });
+
+  // Cargar perfil guardado en Supabase al abrir la app
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('id', 1)
+          .single();
+
+        if (data && !error) {
+          setUserProfile({
+            gender: data.gender || DEFAULT_USER_PROFILE.gender,
+            age: String(data.age || DEFAULT_USER_PROFILE.age),
+            height: String(data.height || DEFAULT_USER_PROFILE.height),
+            weight: String(data.weight || DEFAULT_USER_PROFILE.weight),
+            activityLevel: data.activity_level || DEFAULT_USER_PROFILE.activityLevel,
+            goal: data.goal || DEFAULT_USER_PROFILE.goal,
+            mode: data.mode || DEFAULT_USER_PROFILE.mode,
+            calorieGoal: String(data.calorie_goal || DEFAULT_USER_PROFILE.calorieGoal),
+            proteinGoal: String(data.protein_goal || DEFAULT_USER_PROFILE.proteinGoal),
+            carbsGoal: String(data.carbs_goal || DEFAULT_USER_PROFILE.carbsGoal),
+            fatGoal: String(data.fat_goal || DEFAULT_USER_PROFILE.fatGoal),
+          });
+        }
+      } catch (err) {
+        console.error('Error cargando perfil de Supabase:', err);
+      }
+    }
+    loadProfile();
+  }, []);
 
   const calorieGoal = parseInt(userProfile.calorieGoal) || 2000;
   const proteinGoal = parseInt(userProfile.proteinGoal) || 145;
@@ -214,14 +252,43 @@ function ProfileSection({ userProfile, setUserProfile }) {
     setProfile(updated);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     let finalProfile = { ...profile };
     if (finalProfile.mode === 'automatico') {
       finalProfile = calculateMifflinStJeor(finalProfile);
     }
     setUserProfile(finalProfile);
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 2500);
+
+    try {
+      // Guardar o actualizar en la tabla 'user_profiles' de Supabase
+      const { error } = await supabase
+        .from('user_profiles')
+        .upsert({
+          id: 1, // Fila única para el usuario principal
+          gender: finalProfile.gender,
+          age: parseFloat(finalProfile.age),
+          height: parseFloat(finalProfile.height),
+          weight: parseFloat(finalProfile.weight),
+          activity_level: finalProfile.activityLevel,
+          goal: finalProfile.goal,
+          mode: finalProfile.mode,
+          calorie_goal: parseFloat(finalProfile.calorieGoal),
+          protein_goal: parseFloat(finalProfile.proteinGoal),
+          carbs_goal: parseFloat(finalProfile.carbsGoal),
+          fat_goal: parseFloat(finalProfile.fatGoal),
+          updated_at: new Date(),
+        });
+
+      if (error) {
+        console.error('Error al guardar en Supabase:', error.message);
+        alert('Hubo un error al guardar en la base de datos: ' + error.message);
+      } else {
+        setSavedSuccess(true);
+        setTimeout(() => setSavedSuccess(false), 2500);
+      }
+    } catch (err) {
+      console.error('Excepción al guardar:', err);
+    }
   };
 
   return (
