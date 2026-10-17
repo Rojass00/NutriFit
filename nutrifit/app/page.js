@@ -137,16 +137,44 @@ export default function Home() {
 
   const progress = Math.min((stats.caloriesConsumed / calorieGoal) * 100, 100);
 
-  // Funciones del Escáner IA (Permite galería y cámara)
+  // Compresor y redimensionador automático de imagen
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result;
-      setScanPreview(base64String);
-      analyzeFood(base64String);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convertir a JPEG ligero comprimido al 75%
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
+        setScanPreview(compressedBase64);
+        analyzeFood(compressedBase64);
+      };
     };
     reader.readAsDataURL(file);
   };
@@ -170,7 +198,7 @@ export default function Home() {
         setScanError(result.error || 'Error al analizar el alimento');
       }
     } catch (err) {
-      setScanError('Error de conexión con el servidor');
+      setScanError('Error de conexión con el servidor. Revisa tu clave GEMINI_API_KEY en Vercel.');
     } finally {
       setScanLoading(false);
     }
