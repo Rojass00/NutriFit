@@ -15,7 +15,7 @@ export async function POST(request) {
     const buffer = Buffer.from(base64Data, 'base64');
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-3.8-flash',
       contents: [
         {
           inlineData: {
