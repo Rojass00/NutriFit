@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Flame, Camera, Dumbbell, User, Check } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
-// Inicializar cliente de Supabase de forma segura
+// Inicializar cliente de Supabase
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -83,12 +83,18 @@ function calculateMifflinStJeor(p) {
 export default function Home() {
   const [activeTab, setActiveTab] = useState('inicio');
   const [userProfile, setUserProfile] = useState(DEFAULT_USER_PROFILE);
-  const [stats] = useState({
+  const [stats, setStats] = useState({
     caloriesConsumed: 0,
     proteinConsumed: 0,
     carbsConsumed: 0,
     fatConsumed: 0,
   });
+
+  // Estados para el Escáner con IA (Gemini)
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanFoodData, setScanFoodData] = useState(null);
+  const [scanPreview, setScanPreview] = useState(null);
+  const [scanError, setScanError] = useState(null);
 
   // Cargar perfil guardado en Supabase al abrir la app
   useEffect(() => {
@@ -129,6 +135,59 @@ export default function Home() {
   const fatGoal = parseInt(userProfile.fatGoal) || 53;
 
   const progress = Math.min((stats.caloriesConsumed / calorieGoal) * 100, 100);
+
+  // Funciones del Escáner IA
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result;
+      setScanPreview(base64String);
+      analyzeFood(base64String);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const analyzeFood = async (base64Image) => {
+    setScanLoading(true);
+    setScanError(null);
+    setScanFoodData(null);
+
+    try {
+      const res = await fetch('/api/scan-food', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64Image }),
+      });
+
+      const result = await res.json();
+      if (result.success) {
+        setScanFoodData(result.data);
+      } else {
+        setScanError(result.error || 'Error al analizar el alimento');
+      }
+    } catch (err) {
+      setScanError('Error de conexión con el servidor');
+    } finally {
+      setScanLoading(false);
+    }
+  };
+
+  const handleRegisterFood = () => {
+    if (!scanFoodData) return;
+    setStats(prev => ({
+      caloriesConsumed: prev.caloriesConsumed + (scanFoodData.calories || 0),
+      proteinConsumed: prev.proteinConsumed + (scanFoodData.protein || 0),
+      carbsConsumed: prev.carbsConsumed + (scanFoodData.carbs || 0),
+      fatConsumed: prev.fatConsumed + (scanFoodData.fat || 0),
+    }));
+    alert("¡Alimento registrado con éxito en tu día! 🍽️");
+    setScanPreview(null);
+    setScanFoodData(null);
+    setActiveTab('inicio');
+  };
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0B0D12', color: '#FFFFFF', paddingBottom: '100px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -199,11 +258,95 @@ export default function Home() {
           </div>
         )}
 
-        {/* PANTALLA ESCANEAR */}
+        {/* PANTALLA ESCANEAR (GEMINI IA) */}
         {activeTab === 'escanear' && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', textAlign: 'center' }}>
-            <Camera size={48} color="#34C759" />
-            <div style={{ fontSize: '22px', fontWeight: '700', marginTop: '12px' }}>Escáner IA</div>
+          <div>
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <h1 style={{ fontSize: '28px', fontWeight: '800', margin: 0 }}>📷 Escáner IA</h1>
+              <p style={{ color: '#8E8E93', fontSize: '14px', marginTop: '4px' }}>
+                Toma una foto a tu plato o súbela para calcular macros al instante con Gemini.
+              </p>
+            </div>
+
+            {!scanPreview && (
+              <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '2px dashed rgba(52, 199, 89, 0.4)', backgroundColor: '#16181F', borderRadius: '22px', padding: '36px', cursor: 'pointer', marginBottom: '24px' }}>
+                <span style={{ fontSize: '40px', marginBottom: '10px' }}>📸</span>
+                <span style={{ color: '#34C759', fontWeight: '700', fontSize: '16px' }}>Tomar foto o Subir imagen</span>
+                <span style={{ color: '#8E8E93', fontSize: '12px', marginTop: '4px' }}>Compatible con iPhone, Android y PC</span>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  capture="environment" 
+                  style={{ display: 'none' }} 
+                  onChange={handleImageChange} 
+                />
+              </label>
+            )}
+
+            {scanPreview && (
+              <div style={{ position: 'relative', marginBottom: '24px', borderRadius: '22px', overflow: 'hidden', border: '1px solid #222530' }}>
+                <img src={scanPreview} alt="Plato a escanear" style={{ width: '100%', height: '260px', objectFit: 'cover' }} />
+                <button 
+                  onClick={() => { setScanPreview(null); setScanFoodData(null); }}
+                  style={{ position: 'absolute', top: '12px', right: '12px', backgroundColor: 'rgba(0,0,0,0.7)', color: '#FFFFFF', border: 'none', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', cursor: 'pointer' }}
+                >
+                  🔄 Cambiar foto
+                </button>
+              </div>
+            )}
+
+            {scanLoading && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px', backgroundColor: '#16181F', borderRadius: '22px', border: '1px solid #222530' }}>
+                <div style={{ width: '36px', height: '36px', border: '4px solid #34C759', borderTopColor: 'transparent', borderRadius: '50%', marginBottom: '12px', animation: 'spin 1s linear infinite' }}></div>
+                <p style={{ color: '#E0E0E0', fontWeight: '600', margin: 0 }}>Gemini está analizando tu plato...</p>
+                <p style={{ color: '#8E8E93', fontSize: '12px', marginTop: '4px' }}>Calculando calorías y macronutrientes</p>
+              </div>
+            )}
+
+            {scanError && (
+              <div style={{ backgroundColor: 'rgba(255, 59, 48, 0.1)', border: '1px solid rgba(255, 59, 48, 0.3)', color: '#FF3B30', padding: '16px', borderRadius: '16px', textAlign: 'center', marginBottom: '24px', fontSize: '14px' }}>
+                {scanError}
+              </div>
+            )}
+
+            {scanFoodData && (
+              <div style={{ backgroundColor: '#16181F', border: '1px solid rgba(52, 199, 89, 0.3)', borderRadius: '22px', padding: '24px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                  <div>
+                    <h2 style={{ fontSize: '20px', fontWeight: '800', margin: 0, color: '#FFFFFF' }}>{scanFoodData.foodName}</h2>
+                    <span style={{ fontSize: '11px', backgroundColor: 'rgba(52, 199, 89, 0.15)', color: '#34C759', padding: '4px 10px', borderRadius: '20px', fontWeight: '600', display: 'inline-block', marginTop: '6px' }}>
+                      Confianza: {scanFoodData.confidence}
+                    </span>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontSize: '28px', fontWeight: '900', color: '#34C759' }}>{scanFoodData.calories}</span>
+                    <span style={{ fontSize: '11px', color: '#8E8E93', display: 'block' }}>kcal</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', paddingTop: '16px', borderTop: '1px solid #222530', textAlign: 'center' }}>
+                  <div style={{ flex: 1, backgroundColor: '#0B0D12', padding: '12px', borderRadius: '14px', border: '1px solid #222530' }}>
+                    <span style={{ fontSize: '11px', color: '#8E8E93', display: 'block', marginBottom: '4px' }}>Proteínas</span>
+                    <span style={{ fontSize: '16px', fontWeight: '700', color: '#FFFFFF' }}>{scanFoodData.protein}g</span>
+                  </div>
+                  <div style={{ flex: 1, backgroundColor: '#0B0D12', padding: '12px', borderRadius: '14px', border: '1px solid #222530' }}>
+                    <span style={{ fontSize: '11px', color: '#8E8E93', display: 'block', marginBottom: '4px' }}>Carbs</span>
+                    <span style={{ fontSize: '16px', fontWeight: '700', color: '#FFFFFF' }}>{scanFoodData.carbs}g</span>
+                  </div>
+                  <div style={{ flex: 1, backgroundColor: '#0B0D12', padding: '12px', borderRadius: '14px', border: '1px solid #222530' }}>
+                    <span style={{ fontSize: '11px', color: '#8E8E93', display: 'block', marginBottom: '4px' }}>Grasas</span>
+                    <span style={{ fontSize: '16px', fontWeight: '700', color: '#FFFFFF' }}>{scanFoodData.fat}g</span>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={handleRegisterFood}
+                  style={{ width: '100%', marginTop: '20px', backgroundColor: '#34C759', color: '#000000', fontWeight: '800', padding: '16px', borderRadius: '16px', border: 'none', cursor: 'pointer', fontSize: '15px' }}
+                >
+                  Registrar en mi Diario 🍽️
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -212,6 +355,7 @@ export default function Home() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', textAlign: 'center' }}>
             <Dumbbell size={48} color="#34C759" />
             <div style={{ fontSize: '22px', fontWeight: '700', marginTop: '12px' }}>Ejercicio</div>
+            <p style={{ color: '#8E8E93', fontSize: '14px', marginTop: '4px' }}>Próximamente registro de rutinas y quema activa.</p>
           </div>
         )}
 
@@ -477,3 +621,25 @@ const inputStyle = {
   width: '100%',
   backgroundColor: '#0B0D12',
   border: '1px solid #222530',
+  borderRadius: '12px',
+  padding: '12px',
+  color: '#FFFFFF',
+  fontSize: '15px',
+  fontWeight: '600',
+  outline: 'none',
+};
+
+function navBtnStyle(active) {
+  return {
+    background: 'none',
+    border: 'none',
+    color: active ? '#34C759' : '#8E8E93',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '4px',
+    fontSize: '11px',
+    fontWeight: '600',
+    cursor: 'pointer',
+  };
+}
