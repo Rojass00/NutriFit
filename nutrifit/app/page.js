@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Flame, Camera, Dumbbell, User, Check, Utensils, Trash2, Pencil, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Flame, Camera, Dumbbell, User, Check, Utensils, Trash2, Edit2, X } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
 // Inicializar cliente de Supabase
@@ -30,8 +30,11 @@ function calculateMifflinStJeor(p) {
   const height = Math.max(100, parseFloat(p.height) || 170);
 
   let bmr = (10 * weight) + (6.25 * height) - (5 * age);
-  if (p.gender === 'hombre') bmr += 5;
-  else bmr -= 161;
+  if (p.gender === 'hombre') {
+    bmr += 5;
+  } else {
+    bmr -= 161;
+  }
 
   let activityMultiplier = 1.375;
   if (p.activityLevel === 'sedentario') activityMultiplier = 1.2;
@@ -78,90 +81,16 @@ function calculateMifflinStJeor(p) {
   };
 }
 
-// Componente de Swipe Item con estilos en línea robustos
-function SwipeItem({ onEdit, onDelete, children }) {
-  const ref = useRef(null);
-
-  useEffect(() => {
-    if (ref.current) ref.current.scrollLeft = 80;
-  }, []);
-
-  return (
-    <div 
-      ref={ref} 
-      style={{
-        display: 'flex',
-        overflowX: 'auto',
-        scrollSnapType: 'x mandatory',
-        borderRadius: '18px',
-        backgroundColor: '#16181F',
-        border: '1px solid #222530',
-        marginBottom: '12px',
-        scrollbarWidth: 'none',
-        msOverflowStyle: 'none',
-        WebkitOverflowScrolling: 'touch'
-      }}
-    >
-      {onEdit && (
-        <button 
-          onClick={onEdit} 
-          style={{
-            scrollSnapAlign: 'start',
-            width: '80px',
-            flexShrink: 0,
-            backgroundColor: '#2563EB',
-            color: '#FFFFFF',
-            fontWeight: '600',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '0'
-          }}
-        >
-          <Pencil size={18} />
-          <span style={{ fontSize: '10px', fontWeight: '600', marginTop: '4px' }}>Editar</span>
-        </button>
-      )}
-
-      <div style={{ width: '100%', flexShrink: 0, scrollSnapAlign: 'center' }}>
-        {children}
-      </div>
-
-      {onDelete && (
-        <button 
-          onClick={onDelete} 
-          style={{
-            scrollSnapAlign: 'end',
-            width: '80px',
-            flexShrink: 0,
-            backgroundColor: '#DC2626',
-            color: '#FFFFFF',
-            fontWeight: '600',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '0'
-          }}
-        >
-          <Trash2 size={18} />
-          <span style={{ fontSize: '10px', fontWeight: '600', marginTop: '4px' }}>Eliminar</span>
-        </button>
-      )}
-    </div>
-  );
-}
-
 export default function Home() {
   const [activeTab, setActiveTab] = useState('inicio');
   const [userProfile, setUserProfile] = useState(DEFAULT_USER_PROFILE);
   const [foodLogs, setFoodLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    caloriesConsumed: 0,
+    proteinConsumed: 0,
+    carbsConsumed: 0,
+    fatConsumed: 0,
+  });
 
   // Estados para el Escáner con IA (Gemini)
   const [scanLoading, setScanLoading] = useState(false);
@@ -222,16 +151,15 @@ export default function Home() {
 
       if (data && !error) {
         setFoodLogs(data);
+        calculateStats(data);
       }
     } catch (err) {
       console.error('Error cargando registros de comida:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
-  const stats = useMemo(() => {
-    return foodLogs.reduce(
+  const calculateStats = (logs) => {
+    const totals = logs.reduce(
       (acc, item) => ({
         caloriesConsumed: acc.caloriesConsumed + (item.calories || 0),
         proteinConsumed: acc.proteinConsumed + (item.protein || 0),
@@ -240,12 +168,14 @@ export default function Home() {
       }),
       { caloriesConsumed: 0, proteinConsumed: 0, carbsConsumed: 0, fatConsumed: 0 }
     );
-  }, [foodLogs]);
+    setStats(totals);
+  };
 
   const calorieGoal = parseInt(userProfile.calorieGoal) || 2000;
   const proteinGoal = parseInt(userProfile.proteinGoal) || 145;
   const carbsGoal = parseInt(userProfile.carbsGoal) || 205;
   const fatGoal = parseInt(userProfile.fatGoal) || 53;
+
   const progress = Math.min((stats.caloriesConsumed / calorieGoal) * 100, 100);
 
   // Compresor y redimensionador automático de imagen
@@ -339,7 +269,9 @@ export default function Home() {
       }
 
       if (data && data.length > 0) {
-        setFoodLogs([data[0], ...foodLogs]);
+        const updatedLogs = [data[0], ...foodLogs];
+        setFoodLogs(updatedLogs);
+        calculateStats(updatedLogs);
       }
 
       alert("¡Alimento registrado y guardado con éxito! 🍽️");
@@ -364,7 +296,9 @@ export default function Home() {
       if (error) {
         alert('Error al eliminar: ' + error.message);
       } else {
-        setFoodLogs((prev) => prev.filter((item) => item.id !== id));
+        const updatedLogs = foodLogs.filter(item => item.id !== id);
+        setFoodLogs(updatedLogs);
+        calculateStats(updatedLogs);
       }
     } catch (err) {
       console.error('Error borrando comida:', err);
@@ -390,7 +324,9 @@ export default function Home() {
       if (error) {
         alert('Error al actualizar: ' + error.message);
       } else {
-        setFoodLogs((prev) => prev.map((item) => item.id === editingItem.id ? editingItem : item));
+        const updatedLogs = foodLogs.map(item => item.id === editingItem.id ? editingItem : item);
+        setFoodLogs(updatedLogs);
+        calculateStats(updatedLogs);
         setEditingItem(null);
       }
     } catch (err) {
@@ -591,29 +527,14 @@ export default function Home() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {foodLogs.map((item) => {
-                  const timeStr = new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                  return (
-                    <SwipeItem key={item.id} onEdit={() => setEditingItem(item)} onDelete={() => handleDeleteFood(item.id)}>
-                      <div style={{ backgroundColor: '#16181F', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                        <div style={{ flex: 1, paddingRight: '12px' }}>
-                          <div style={{ fontSize: '16px', fontWeight: '700', color: '#FFFFFF' }}>{item.food_name}</div>
-                          <div style={{ color: '#8E8E93', fontSize: '12px', marginTop: '4px', display: 'flex', gap: '8px' }}>
-                            <span>🕒 {timeStr}</span>
-                            <span>•</span>
-                            <span style={{ color: '#FF3B30' }}>P: {item.protein}g</span>
-                            <span style={{ color: '#34C759' }}>C: {item.carbs}g</span>
-                            <span style={{ color: '#30B0C7' }}>G: {item.fat}g</span>
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <span style={{ fontSize: '18px', fontWeight: '800', color: '#34C759' }}>{item.calories}</span>
-                          <span style={{ fontSize: '11px', color: '#8E8E93', display: 'block' }}>kcal</span>
-                        </div>
-                      </div>
-                    </SwipeItem>
-                  );
-                })}
+                {foodLogs.map((item) => (
+                  <SwipeableFoodCard 
+                    key={item.id} 
+                    item={item} 
+                    onEdit={(itemToEdit) => setEditingItem(itemToEdit)} 
+                    onDelete={handleDeleteFood} 
+                  />
+                ))}
               </div>
             )}
           </div>
@@ -721,6 +642,92 @@ export default function Home() {
         <button onClick={() => setActiveTab('ejercicio')} style={navBtnStyle(activeTab === 'ejercicio')}><Dumbbell size={22} /><span>Ejercicio</span></button>
         <button onClick={() => setActiveTab('perfil')} style={navBtnStyle(activeTab === 'perfil')}><User size={22} /><span>Perfil</span></button>
       </nav>
+    </div>
+  );
+}
+
+// Componente para manejar gestos de deslizamiento (Swipe Right = Editar, Swipe Left = Eliminar)
+function SwipeableFoodCard({ item, onEdit, onDelete }) {
+  const [offsetX, setOffsetX] = useState(0);
+  const [startX, setStartX] = useState(0);
+  const [swiping, setSwiping] = useState(false);
+
+  const handleTouchStart = (e) => {
+    setStartX(e.touches[0].clientX);
+    setSwiping(true);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!swiping) return;
+    const currentX = e.touches[0].clientX;
+    const diff = currentX - startX;
+    if (diff > -150 && diff < 150) {
+      setOffsetX(diff);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setSwiping(false);
+    if (offsetX > 70) {
+      onEdit(item);
+    } else if (offsetX < -70) {
+      onDelete(item.id);
+    }
+    setOffsetX(0);
+  };
+
+  const timeStr = new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '18px', marginBottom: '12px' }}>
+      {/* Fondo dinámico al deslizar */}
+      <div style={{
+        position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '0 20px', backgroundColor: offsetX > 0 ? '#34C759' : '#FF3B30',
+        color: '#000000', fontWeight: '800', fontSize: '13px', zIndex: 1
+      }}>
+        <span>{offsetX > 0 ? '✏️ EDITAR' : ''}</span>
+        <span>{offsetX < 0 ? '🗑️ ELIMINAR' : ''}</span>
+      </div>
+
+      {/* Tarjeta interactiva con eventos táctiles */}
+      <div
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{
+          position: 'relative',
+          backgroundColor: '#16181F',
+          borderRadius: '18px',
+          padding: '16px',
+          border: '1px solid #222530',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          transform: `translateX(${offsetX}px)`,
+          transition: swiping ? 'none' : 'transform 0.3s ease',
+          zIndex: 2,
+          touchAction: 'pan-y'
+        }}
+      >
+        <div style={{ flex: 1, paddingRight: '12px' }}>
+          <div style={{ fontSize: '16px', fontWeight: '700', color: '#FFFFFF' }}>{item.food_name}</div>
+          <div style={{ color: '#8E8E93', fontSize: '12px', marginTop: '4px', display: 'flex', gap: '8px' }}>
+            <span>🕒 {timeStr}</span>
+            <span>•</span>
+            <span style={{ color: '#FF3B30' }}>P: {item.protein}g</span>
+            <span style={{ color: '#34C759' }}>C: {item.carbs}g</span>
+            <span style={{ color: '#30B0C7' }}>G: {item.fat}g</span>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ textAlign: 'right' }}>
+            <span style={{ fontSize: '18px', fontWeight: '800', color: '#34C759' }}>{item.calories}</span>
+            <span style={{ fontSize: '11px', color: '#8E8E93', display: 'block' }}>kcal</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
