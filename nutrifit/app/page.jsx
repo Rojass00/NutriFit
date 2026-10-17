@@ -4,9 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { Flame, Camera, Dumbbell, User, Check } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
-// Inicializar cliente de Supabase con tus variables públicas de Vercel
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+// Inicializar cliente de Supabase de forma segura para evitar errores de compilación
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const DEFAULT_USER_PROFILE = {
@@ -93,6 +93,7 @@ export default function Home() {
   // Cargar perfil guardado en Supabase al abrir la app
   useEffect(() => {
     async function loadProfile() {
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return;
       try {
         const { data, error } = await supabase
           .from('user_profiles')
@@ -260,11 +261,10 @@ function ProfileSection({ userProfile, setUserProfile }) {
     setUserProfile(finalProfile);
 
     try {
-      // Guardar o actualizar en la tabla 'user_profiles' de Supabase
       const { error } = await supabase
         .from('user_profiles')
         .upsert({
-          id: 1, // Fila única para el usuario principal
+          id: 1,
           gender: finalProfile.gender,
           age: parseFloat(finalProfile.age),
           height: parseFloat(finalProfile.height),
@@ -281,7 +281,7 @@ function ProfileSection({ userProfile, setUserProfile }) {
 
       if (error) {
         console.error('Error al guardar en Supabase:', error.message);
-        alert('Hubo un error al guardar en la base de datos: ' + error.message);
+        alert('Error al guardar en base de datos: ' + error.message);
       } else {
         setSavedSuccess(true);
         setTimeout(() => setSavedSuccess(false), 2500);
