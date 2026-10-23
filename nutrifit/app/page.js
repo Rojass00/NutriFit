@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Flame, Camera, Dumbbell, User, Check, Utensils, Trash2, Edit2, X, Pencil } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
@@ -528,12 +528,13 @@ export default function Home() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {foodLogs.map((item) => (
-                  <SwipeableFoodCard 
-                    key={item.id} 
-                    item={item} 
-                    onEdit={(itemToEdit) => setEditingItem(itemToEdit)} 
-                    onDelete={handleDeleteFood} 
-                  />
+                  <SwipeItem
+                    key={item.id}
+                    onEdit={() => setEditingItem(item)}
+                    onDelete={() => handleDeleteFood(item.id)}
+                  >
+                    <FoodRow item={item} />
+                  </SwipeItem>
                 ))}
               </div>
             )}
@@ -646,89 +647,125 @@ export default function Home() {
   );
 }
 
-// Componente para manejar gestos de deslizamiento con la función de Editar y Eliminar integrada
-function SwipeableFoodCard({ item, onEdit, onDelete }) {
-  const [offsetX, setOffsetX] = useState(0);
-  const [startX, setStartX] = useState(0);
-  const [swiping, setSwiping] = useState(false);
+// Colores exactos de Tailwind usados en el diseño original
+const TX = {
+  accent: '#f97316',                      // text-accent (naranja)
+  orangeBg: 'rgba(249, 115, 22, 0.15)',   // bg-orange-500/15
+  emeraldBg: 'rgba(16, 185, 129, 0.15)',  // bg-emerald-500/15
+  emeraldText: '#34d399',                 // text-emerald-400
+  blueBg: 'rgba(59, 130, 246, 0.15)',     // bg-blue-500/15
+  blueText: '#60a5fa',                    // text-blue-400
+  zinc500: '#71717a',                     // text-zinc-500
+};
 
-  const handleTouchStart = (e) => {
-    setStartX(e.touches[0].clientX);
-    setSwiping(true);
-  };
-
-  const handleTouchMove = (e) => {
-    if (!swiping) return;
-    const currentX = e.touches[0].clientX;
-    const diff = currentX - startX;
-    if (diff > -150 && diff < 150) {
-      setOffsetX(diff);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    setSwiping(false);
-    if (offsetX > 70) {
-      onEdit(item);
-    } else if (offsetX < -70) {
-      onDelete(item.id);
-    }
-    setOffsetX(0);
-  };
-
+// Fila de alimento (misma estructura visual que TxRow)
+function FoodRow({ item }) {
   const timeStr = new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '18px', marginBottom: '12px' }}>
-      {/* Fondo dinámico al deslizar */}
-      <div style={{
-        position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '0 20px', backgroundColor: offsetX > 0 ? '#34C759' : '#FF3B30',
-        color: '#000000', fontWeight: '800', fontSize: '13px', zIndex: 1
-      }}>
-        <span>{offsetX > 0 ? '✏️ EDITAR' : ''}</span>
-        <span>{offsetX < 0 ? '🗑️ ELIMINAR' : ''}</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 4px' }}>
+      <div style={{ display: 'grid', placeItems: 'center', height: '40px', width: '40px', borderRadius: '12px', backgroundColor: TX.orangeBg, color: TX.accent, flexShrink: 0 }}>
+        <Utensils size={18} />
       </div>
 
-      {/* Tarjeta interactiva con eventos táctiles */}
-      <div
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        style={{
-          position: 'relative',
-          backgroundColor: '#16181F',
-          borderRadius: '18px',
-          padding: '16px',
-          border: '1px solid #222530',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          transform: `translateX(${offsetX}px)`,
-          transition: swiping ? 'none' : 'transform 0.3s ease',
-          zIndex: 2,
-          touchAction: 'pan-y'
-        }}
-      >
-        <div style={{ flex: 1, paddingRight: '12px' }}>
-          <div style={{ fontSize: '16px', fontWeight: '700', color: '#FFFFFF' }}>{item.food_name}</div>
-          <div style={{ color: '#8E8E93', fontSize: '12px', marginTop: '4px', display: 'flex', gap: '8px' }}>
-            <span>🕒 {timeStr}</span>
-            <span>•</span>
-            <span style={{ color: '#FF3B30' }}>P: {item.protein}g</span>
-            <span style={{ color: '#34C759' }}>C: {item.carbs}g</span>
-            <span style={{ color: '#30B0C7' }}>G: {item.fat}g</span>
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: '18px', fontWeight: '800', color: '#34C759' }}>{item.calories}</span>
-            <span style={{ fontSize: '11px', color: '#8E8E93', display: 'block' }}>kcal</span>
-          </div>
-        </div>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <p style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '14px', lineHeight: '20px', fontWeight: 500 }}>
+          {item.food_name || 'Sin nombre'}
+        </p>
+        <p style={{ margin: 0, fontSize: '12px', lineHeight: '16px', color: TX.zinc500 }}>
+          {timeStr} · P {item.protein}g · C {item.carbs}g · G {item.fat}g
+        </p>
+      </div>
+
+      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+        <p style={{ margin: 0, fontSize: '14px', lineHeight: '20px', fontWeight: 600 }}>{item.calories} kcal</p>
+        <span style={{ display: 'inline-block', borderRadius: '9999px', padding: '2px 8px', fontSize: '10px', lineHeight: '16px', backgroundColor: TX.orangeBg, color: TX.accent }}>
+          Comida
+        </span>
       </div>
     </div>
+  );
+}
+
+// Contenedor deslizable (Editar a la izquierda, Eliminar a la derecha)
+function SwipeItem({ onEdit, onDelete, children }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (ref.current) ref.current.scrollLeft = 80;
+  }, []);
+
+  const resetScroll = () => {
+    ref.current?.scrollTo({ left: 80, behavior: 'smooth' });
+  };
+
+  const actionBtn = {
+    width: '80px',
+    flexShrink: 0,
+    color: '#FFFFFF',
+    fontWeight: 500,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: 'none',
+    cursor: 'pointer',
+    transition: 'background-color 0.15s',
+  };
+
+  return (
+    <>
+      <style>{`
+        .swipe-scroll::-webkit-scrollbar { display: none; }
+        .swipe-edit { background-color: rgba(37, 99, 235, 0.9); }
+        .swipe-edit:hover { background-color: #2563eb; }
+        .swipe-edit:active { background-color: #1e40af; }
+        .swipe-del { background-color: rgba(220, 38, 38, 0.9); }
+        .swipe-del:hover { background-color: #dc2626; }
+        .swipe-del:active { background-color: #991b1b; }
+      `}</style>
+
+      <div
+        ref={ref}
+        className="swipe-scroll"
+        style={{
+          display: 'flex',
+          overflowX: 'auto',
+          scrollSnapType: 'x mandatory',
+          borderRadius: '16px',
+          backgroundColor: 'rgba(24, 24, 27, 0.8)',
+          border: '1px solid rgba(39, 39, 42, 0.8)',
+          userSelect: 'none',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
+        {onEdit && (
+          <button
+            className="swipe-edit"
+            onClick={() => { onEdit(); resetScroll(); }}
+            style={{ ...actionBtn, scrollSnapAlign: 'start', borderRadius: '16px 0 0 16px' }}
+          >
+            <Pencil size={18} />
+            <span style={{ fontSize: '10px', fontWeight: 600, marginTop: '4px' }}>Editar</span>
+          </button>
+        )}
+
+        <div style={{ width: '100%', flexShrink: 0, scrollSnapAlign: 'center' }}>{children}</div>
+
+        {onDelete && (
+          <button
+            className="swipe-del"
+            onClick={onDelete}
+            style={{ ...actionBtn, scrollSnapAlign: 'end', borderRadius: '0 16px 16px 0' }}
+          >
+            <Trash2 size={18} />
+            <span style={{ fontSize: '10px', fontWeight: 600, marginTop: '4px' }}>Eliminar</span>
+          </button>
+        )}
+      </div>
+    </>
   );
 }
 
